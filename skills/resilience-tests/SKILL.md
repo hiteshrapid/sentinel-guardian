@@ -13,6 +13,19 @@ description: >
 
 # Resilience Tests Skill
 
+## When to Apply (Analyzer decides per-repo)
+
+| Repo type | Apply? | Reason |
+|-----------|--------|--------|
+| Backend service with external HTTP deps or DB | **Yes** | Dependencies fail in prod — service must degrade gracefully |
+| MCP / worker services calling external APIs | **Yes** | Same failure modes |
+| Frontend (Next.js, React) | **No** | Error boundaries + retry logic, not resilience suite |
+| Proto / schema repos | **No** | No runtime behavior to test |
+| Libraries / SDKs | **No** | Consuming service owns its resilience |
+| POC / experimental | **No** | Not worth the investment |
+
+**If the Analyzer doesn't flag the repo for resilience, skip this skill entirely.**
+
 ## What Resilience Tests Cover
 
 Resilience tests answer: **"What happens when things go wrong?"**

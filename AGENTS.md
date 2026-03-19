@@ -121,7 +121,7 @@ Phase 2: Coverage   Integration   Security
 Phase 3: Contract (needs unit + integration to pass first)
             │
             ▼
-Phase 4: Resilience (timeout/5xx/failure handling)
+Phase 4: Resilience (IF backend with external deps — skip for frontends/proto/libs)
             │
             ▼
 Phase 5: Regression wiring (nightly CI + Slack alerts)
