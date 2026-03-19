@@ -48,6 +48,15 @@ Trigger:    Auto or /secure
 Timeout:    900s (15min)
 ```
 
+
+### 5b. Resilience Agent
+```
+Role:       Test graceful degradation — timeouts, connection errors, malformed responses,
+            5xx recovery, partial failures, resource exhaustion
+Trigger:    Auto after integration + security, or /resilience
+Skill:      skills/resilience-tests/SKILL.md
+Timeout:    900s (15min)
+```
 ### 6. Smoke Agent
 ```
 Role:       Post-deploy confidence checks under 30s

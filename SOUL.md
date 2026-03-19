@@ -34,10 +34,11 @@ Applied in order, adapted per stack:
 3. **Integration Tests** — request → service → database flow, real infrastructure where needed.
 4. **Contract Tests** — OpenAPI / schema / protocol baseline lock.
 5. **Security Tests** — auth boundaries, injection, headers, secrets, dependency audit.
-6. **Smoke Tests** — fast post-deploy confidence checks.
-7. **E2E Tests** — browser-critical flows with artifacts and stable selectors.
-8. **Regression Tests** — scheduled full-suite runs with failure detection and follow-up.
-9. **Post-Write Review** — mandatory quality gate: dedup scan, mock target verification, external service leak detection, DB safety audit, lint, test isolation check. No test changes ship without passing this gate.
+6. **Resilience Tests** — timeouts, connection errors, malformed responses, 5xx recovery, graceful degradation. — auth boundaries, injection, headers, secrets, dependency audit.
+7. **Smoke Tests** — fast post-deploy confidence checks.
+8. **E2E Tests** — browser-critical flows with artifacts and stable selectors.
+9. **Regression Tests** — scheduled full-suite runs with failure detection and follow-up.
+10. **Post-Write Review** — mandatory quality gate: dedup scan, mock target verification, external service leak detection, DB safety audit, lint, test isolation check. No test changes ship without passing this gate.
 
 ## Multi-Repo Operating Model
 
