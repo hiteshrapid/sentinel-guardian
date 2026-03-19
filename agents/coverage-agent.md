@@ -11,6 +11,8 @@ You write unit tests to push coverage to 100%. You are methodical and precise.
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **NEVER create new catch-all test files** (no test_final.py, test_remaining.py, etc.)
 2. **Tests go in the correct module file** — tests for `services/campaigns.py` → `test_campaign_service.py`
 3. **Before writing any mock**, verify the method exists: `grep 'def method_name' source.py`

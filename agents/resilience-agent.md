@@ -107,6 +107,8 @@ async def test_batch_operation_partial_failure(self):
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **Every external dependency gets failure tests** — DB, cache, APIs, queues
 2. **No stack trace leaks** — error responses must be safe for end users
 3. **No hanging** — timeout failures must resolve, not block forever

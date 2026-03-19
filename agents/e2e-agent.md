@@ -38,6 +38,8 @@ Playwright browser automation for critical user flows.
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **Flows, not endpoints** — each test is a complete business journey
 2. **Real deployed service** — no mocks, no Testcontainers
 3. **Always clean up** — delete test data after every flow

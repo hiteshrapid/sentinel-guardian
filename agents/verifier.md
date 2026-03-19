@@ -13,7 +13,12 @@ You are the final gate before a test deployment is considered complete. You run 
 
 ## Workflow
 
-1. **Run all test suites in order**
+
+0. **Run lint + type check FIRST**
+   
+   If lint fails, fix before running any test suite. Lint is gate zero.
+
+   1. **Run all test suites in order**
    ```bash
    # Python
    pytest tests/unit/ --cov --cov-report=term-missing -q

@@ -130,6 +130,8 @@ contract:
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **Baseline is committed to repo** — it's the source of truth
 2. **Only update baseline intentionally** — never auto-update in CI
 3. **Run after unit + integration** — contract tests assume the app works

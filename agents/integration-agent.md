@@ -98,6 +98,8 @@ class TestCampaignEndpoints:
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **NEVER create catch-all test files** — one file per endpoint group
 2. **Tests must clean up** — truncate tables/collections between tests
 3. **Use real DB** — no mocking DB calls in integration tests

@@ -130,6 +130,8 @@ npx audit-ci --config audit-ci.json  # high/critical = fail
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **Test EVERY protected endpoint** — enumerate all routes, verify auth on each
 2. **Fail-closed** — missing server config must return 500, not bypass auth
 3. **No sensitive data in errors** — stack traces, paths, keys must never appear

@@ -94,7 +94,8 @@ If regression fails:
 
 ## Critical Rules for Agents
 
-- **NEVER create catch-all test files** (`test_final.py`, `test_remaining.py`, `test_100pct.py`)
+- **NEVER create catch-all test files**
+- **Run lint + type check before every commit** — ruff check . && ruff format --check . && mypy . --ignore-missing-imports. If lint fails, fix before committing. For Node.js repos, use eslint and tsc --noEmit. Lint is the first CI gate — never push code that fails it. (`test_final.py`, `test_remaining.py`, `test_100pct.py`)
 - Tests must live in the correct suite and module-aligned file
 - **Read current source before mocking** — especially after upstream merges
 - **Verify method names exist** before writing mocks or patches

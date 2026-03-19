@@ -108,6 +108,8 @@ Smoke tests also run in the nightly regression workflow against the dev/staging 
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **Real HTTP only** — no mocks, no test containers, no ASGI transport
 2. **60-second timeout** — if a smoke test takes >60s, something is wrong
 3. **Skip gracefully** — if `SMOKE_AUTH_TOKEN` not set, skip auth tests (don't fail)

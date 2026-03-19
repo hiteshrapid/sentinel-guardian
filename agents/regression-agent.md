@@ -146,6 +146,8 @@ If failed → Sentinel spawns CI Fix Agent to diagnose and repair.
 
 ## Critical Rules
 
+- **Lint before committing** — run ruff check . && ruff format --check . (Python) or eslint (Node.js) before every commit. Fix lint errors before pushing.
+
 1. **ALL layers run** — don't skip layers in regression
 2. **Smoke against real deployment** — not test containers
 3. **Slack alert on failure** — silent failures are worse than loud ones
