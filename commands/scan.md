@@ -8,17 +8,17 @@ Usage: `/scan <repo-path-or-url> [branch:name]`
 
 ## What it does
 1. Clones repo (if URL) or uses local path
-2. Runs `scripts/detect-stack.sh` to identify framework, DB, auth
-3. Loads matching context from `contexts/`
+2. Reads project files to detect framework, DB, auth, package manager
+3. Loads matching context from `skills/contexts/`
 4. Analyzes existing tests and coverage
 5. Produces a test plan with recommended phases
 6. Asks for confirmation before spawning agents
 
 ## Example
 ```
-/scan /Users/dev/my-api branch:main
+/scan /path/to/your/repo branch:main
 
-🔍 Scanning /Users/dev/my-api...
+🔍 Scanning /path/to/your/repo...
 
 Stack Detected:
   Framework:  FastAPI

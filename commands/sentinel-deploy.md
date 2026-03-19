@@ -33,7 +33,7 @@ Phase 11: PR             → open against merge target with full report
 2. Identify merge target: `gh pr list --state merged --limit 5`
 3. Branch: `test/sentinel-deploy` from merge target
 4. Analyzer scans → produces plan
-5. **Confirm with Hitesh before proceeding**
+5. **Confirm with the user before proceeding**
 6. Phases execute — parallel where safe:
    - Phase 3 + 4 + 6 parallel (unit, integration, security)
    - Phase 5 waits for 3 + 4 (contract needs passing tests)
@@ -42,7 +42,7 @@ Phase 11: PR             → open against merge target with full report
 8. Verifier: full suite → 100% coverage → zero debt
 9. Open PR
 
-## CI Pipeline (matches ruh-ai/communication-channel-service)
+## CI Pipeline (matches your reference repo)
 
 ```
 PR:     lint → unit + integration + security (parallel) → contract

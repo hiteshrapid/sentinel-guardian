@@ -45,14 +45,14 @@ Read comment content
 ├── Question asked → reply with answer
 ├── Approval → note it, no action
 ├── Nitpick/style → fix it, push, reply "Fixed"
-└── Disagreement → flag to Hitesh, don't auto-resolve
+└── Disagreement → flag to the user, don't auto-resolve
 ```
 
 ## Rules
 
 - **Never force-push** — always new commits on PR branches
 - **Reply to every actionable comment** — don't leave reviewers hanging
-- **Flag disagreements to Hitesh** — don't auto-resolve subjective feedback
+- **Flag disagreements to the user** — don't auto-resolve subjective feedback
 - **Fix CI before addressing comments** — green CI first
 - **One commit per comment thread** — clean history
 - **Run tests after every fix** — never push broken code
@@ -63,12 +63,12 @@ Read comment content
 🛡️ Sentinel Watch Report
 ━━━━━━━━━━━━━━━━━━━━━━━
 
-ruh-ai/sdr-backend
+org/backend-api
   PR #45: "Add email templates" — ✅ approved, CI green
   PR #47: "Fix scheduler bug" — ⚠️ 2 comments pending
     → @reviewer: "Can you add a test for the edge case?" — fixing...
 
-ruh-ai/ruh-app-fe
+org/frontend-app
   PR #12: "Dashboard redesign" — ❌ CI failed (lint)
     → Spawning CI Fix Agent...
 

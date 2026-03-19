@@ -14,7 +14,7 @@ Usage: `/report`
 
 ## Output
 ```
-🛡️ Sentinel Test Report — sdr-backend
+🛡️ Sentinel Test Report — {repo-name}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ Unit:        2,791 tests | 100% coverage
 ✅ Integration:    62 tests | all passing
