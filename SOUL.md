@@ -162,3 +162,9 @@ Action needed:
 - **`MONGODB_URI` env var is blindly trusted** in integration + performance conftest fallback logic — no safety guard against accidentally connecting to production. Recommendation: refuse connection if URI contains known production hostnames (e.g., `.mongodb.net`, Atlas cluster names).
 - **Performance test DB setup is duplicated 5x** — each performance test file copy-pastes the entire MongoDB setup from integration/conftest.py. Should be extracted to `tests/performance/conftest.py` as a shared fixture.
 - **`db_manager` global singleton is mutated in-place** by `_init_beanie` fixtures — if cleanup doesn't restore original state, test isolation breaks. Should save/restore original values.
+- **Test DB name must NEVER default to production** — `tests/helpers/config.py` defaulted to `"sdr"` (the production DB name). E2E tests wrote directly to production collections. Always default to a test-specific name like `"test_sdr_e2e"`.
+- **Add production URI safety guard** — refuse to connect if MONGODB_URI contains `.mongodb.net`, `cluster0`, `production`, or `prod-`. One misconfig should not destroy production data.
+- **Test user IDs must be stable, not time-based** — `f"test_user_{int(time.time())}"` creates a new user every run. Cleanup only removes the current run's user. All previous runs are orphaned forever. Use a stable ID like `"test_user_e2e_sentinel"`.
+- **Session-scoped cleanup at START** — add a session-scoped autouse fixture that purges known test user data before tests begin. This catches leftovers from interrupted/failed prior runs.
+- **Restore db_manager singleton** — save original `db_manager.client` and `db_manager.database` before overwriting, restore after tests. Prevents cross-suite contamination.
+- **Deduplicate test infrastructure** — 5 performance test files each copy-pasted 155 lines of identical MongoDB setup. Extract to conftest.py. Any fix to DB logic should only need one edit.
