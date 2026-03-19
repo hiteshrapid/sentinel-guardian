@@ -1,0 +1,125 @@
+# HEARTBEAT.md — Sentinel Autonomous Monitoring
+
+## Purpose
+
+Every heartbeat: check repos, check PRs, check CI, take action or report. No fluff.
+
+---
+
+## Checklist (run every heartbeat)
+
+### 1. PR Watch (HIGHEST PRIORITY)
+```bash
+# For each connected Tier 1 repo:
+gh pr list --repo $REPO --state open --json number,title,reviewDecision,statusCheckRollup,comments
+```
+- New review comments? → Read them, address code changes, reply
+- CI failing on PR? → Diagnose root cause, fix, push
+- Requested changes? → Implement them
+- Stale PR (>3 days no activity)? → Ping Hitesh
+
+### 2. CI Watch
+```bash
+# Check latest CI runs across Tier 1 repos
+gh run list --repo $REPO --limit 3 --json conclusion,name,createdAt
+```
+- Any failures? → Classify root cause, start fix or report
+- PR without tests touching source? → Flag it
+
+### 3. Nightly Regression Results (morning check)
+```bash
+gh run list --repo $REPO --workflow="Nightly Regression" --limit 1 --json conclusion
+```
+- Failed? → Diagnose, open fix branch, notify Hitesh
+- Passed? → HEARTBEAT_OK for this repo
+
+### 4. Coverage Watch
+- Coverage dropped below 100%? → Alert + identify what changed
+- New skip/xfail without reason? → Flag as test debt
+
+### 5. Dependency Audit (weekly only)
+```bash
+# Python
+pip-audit 2>&1 | grep -i "critical\|high"
+# Node
+npm audit --audit-level=high
+```
+- High/critical CVE? → Alert Hitesh immediately
+
+---
+
+## Connected Repos
+
+| Repo | Branch | Tier | Status |
+|------|--------|------|--------|
+| ruh-ai/sdr-backend | `dev` | P1 | ✅ Active — 2791 tests, 100% coverage |
+| ruh-ai/sdr-management-mcp | `test/nicolei-bootstrap` | P1 | ✅ Active — 876 tests, 100% coverage |
+| ruh-ai/ruh-ai-admin-service | `test/nicolei-bootstrap` | P1 | ✅ Active — 300+ tests, 100% coverage |
+| ruh-ai/ruh-app-fe | TBD | P1 | 🔲 Next |
+| ruh-ai/ruh-ai-api-gateway | TBD | P1 | 🔲 Next |
+
+---
+
+## Response Format
+
+Nothing to do:
+```
+HEARTBEAT_OK
+```
+
+PRs need attention:
+```
+⚠️ ruh-ai/sdr-backend PR #47 — 2 unresolved comments (3h old)
+   → Addressing comment: "Add edge case test for null input"
+```
+
+CI broken:
+```
+❌ ruh-ai/ruh-app-fe CI failed on PR #12
+   Root cause: ESLint error in Dashboard.tsx
+   Action: fixing on branch, push incoming
+```
+
+Regression failed:
+```
+❌ ruh-ai/sdr-backend nightly regression failed
+   Job: integration
+   Root cause: env drift — MONGODB_URI not set
+   Action: fix branch test/fix-regression-env opened
+```
+
+---
+
+## Post-Action Gate: Learnings
+
+**MANDATORY** — after ANY action during a heartbeat (CI fix, PR update, test write, regression triage), you MUST append to `LEARNINGS.md` before reporting completion. This is a gate, not a suggestion.
+
+### When to Write
+- You fixed a CI failure → write what broke and the fix pattern
+- You responded to a PR review → write what the reviewer caught and why
+- You wrote or modified tests → write what pattern worked or failed
+- You triaged a regression → write the root cause classification
+- HEARTBEAT_OK (no action) → do NOT write anything
+
+### Format
+```markdown
+## {date} — Heartbeat: {repo-name} — {action summary}
+
+**What happened:** {1-2 sentences}
+**Root cause:** {classification}
+**Fix applied:** {what you did}
+**Learning:** {what to do differently or remember next time}
+```
+
+### Example
+```markdown
+## 2026-03-20 — Heartbeat: sdr-backend — CI fix
+
+**What happened:** Integration tests failed on PR #52 — `ConnectionRefusedError` on MongoDB container.
+**Root cause:** Testcontainers timeout — GitHub Actions runner was under heavy load.
+**Fix applied:** Increased container startup timeout from 30s to 60s in conftest.py.
+**Learning:** Default Testcontainers timeout (30s) is too aggressive for shared CI runners. Use 60s minimum.
+```
+
+### Gate Rule
+If you took action but did NOT append to LEARNINGS.md, the heartbeat is INCOMPLETE. Do not report HEARTBEAT_OK or any status until the learning is written.
