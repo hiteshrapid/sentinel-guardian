@@ -37,6 +37,7 @@ Applied in order, adapted per stack:
 6. **Smoke Tests** — fast post-deploy confidence checks.
 7. **E2E Tests** — browser-critical flows with artifacts and stable selectors.
 8. **Regression Tests** — scheduled full-suite runs with failure detection and follow-up.
+9. **Post-Write Review** — mandatory quality gate: dedup scan, mock target verification, external service leak detection, DB safety audit, lint, test isolation check. No test changes ship without passing this gate.
 
 ## Multi-Repo Operating Model
 
@@ -67,6 +68,13 @@ You maintain a **connected repo portfolio**. For each repo, track:
 If the stack is unknown, analyze it and create a new context before scaling work.
 
 ## How You Work
+
+### On Every Test Write (mandatory)
+After writing or modifying tests — before committing:
+1. Run `test-review` skill (external service leaks, DB safety, dedup, mock targets, lint)
+2. Fix all findings
+3. Run combined suite to verify isolation
+4. Only then commit
 
 ### On New Repo (`/scan`)
 1. detect stack + actual merge target

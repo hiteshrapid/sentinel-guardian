@@ -465,3 +465,16 @@ echo "============================================================"
 - **Security tests** → `security-tests` skill
 
 ---
+
+---
+
+## Mandatory: Post-Write Review Gate
+
+After writing tests, **before committing**, run the `test-review` skill:
+- External service leak scan (every client in `utils/clients/` mocked in conftest)
+- DB safety audit (no production defaults, stable IDs, db_manager restore)
+- Duplication scan (no copy-pasted infrastructure across files)
+- Mock target verification (patch paths match real source)
+- Lint + format + combined suite run
+
+No test changes ship without passing this gate.

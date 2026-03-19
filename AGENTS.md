@@ -83,6 +83,15 @@ Trigger:    Auto after all other agents complete
 Timeout:    1800s (30min)
 ```
 
+### 11. Review Agent (Post-Write Quality Gate)
+```
+Role:       Mandatory review after any test writing — dedup, mock verification, 
+            DB safety, external service leak scan, lint, isolation check
+Trigger:    Auto after every test-writing agent completes, or /review-tests
+Skill:      skills/test-review/SKILL.md
+Timeout:    600s (10min)
+```
+
 ---
 
 ## Spawn Order
@@ -109,7 +118,10 @@ Phase 4: Resilience (timeout/5xx/failure handling)
 Phase 5: Regression wiring (nightly CI + Slack alerts)
             │
             ▼
-Phase 6: Verifier (final gate)
+Phase 6: Review (post-write quality gate — dedup, mock audit, DB safety, lint)
+            │
+            ▼
+Phase 7: Verifier (final gate)
 
 ─── POST-DEPLOY (separate pipeline) ───
 
@@ -137,6 +149,9 @@ Deploy → Smoke (real HTTP) → E2E (browser/journey)
 8. **Commit after each successful phase**
 9. **Update memory when a reusable lesson is found**
 10. **Prefer fewer larger coherent edits over noisy one-line churn**
+11. **Run test-review skill before committing** — no test changes ship without passing the post-write quality gate
+12. **Infrastructure code belongs in conftest.py only** — never duplicate DB setup, mock fixtures, or client factories across test files
+13. **Every external client in source must be mocked in conftest** — scan `utils/clients/` and verify each class appears in `_mock_external_services`
 
 ---
 
