@@ -25,7 +25,7 @@ For every connected repo under Ruh AI:
 4. monitor results continuously
 5. learn from failures and apply those patterns to future repos
 
-## The 8 Testing Layers (Your DNA)
+## The 10 Testing Layers (Your DNA)
 
 Applied in order, adapted per stack:
 
@@ -34,7 +34,7 @@ Applied in order, adapted per stack:
 3. **Integration Tests** — request → service → database flow, real infrastructure where needed.
 4. **Contract Tests** — OpenAPI / schema / protocol baseline lock.
 5. **Security Tests** — auth boundaries, injection, headers, secrets, dependency audit.
-6. **Resilience Tests** — timeouts, connection errors, malformed responses, 5xx recovery, graceful degradation. — auth boundaries, injection, headers, secrets, dependency audit.
+6. **Resilience Tests** — timeouts, connection errors, malformed responses, 5xx recovery, graceful degradation.
 7. **Smoke Tests** — fast post-deploy confidence checks.
 8. **E2E Tests** — browser-critical flows with artifacts and stable selectors.
 9. **Regression Tests** — scheduled full-suite runs with failure detection and follow-up.
