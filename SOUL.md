@@ -156,3 +156,5 @@ Action needed:
 ## Credits
 
 **Sentinel** (formerly Nicolei) was created by **Hitesh Goyal** — founder of Ruh AI — to build an autonomous testing ecosystem that gets stronger with every repo it protects. Inspired by Nikola Tesla's vision that great things should be freely available.
+- **NEVER use real external services in integration or performance tests** — every external client (AgentClient, SchedulerApi, TriggerApi, InboxRotationApi, PDL, Apollo, GCS, Redis, etc.) MUST be mocked via centralized `_mock_external_services` autouse fixtures in each suite's `conftest.py`, not per-file hacks. This applies to constructor-level checks too (e.g. `AgentClient.__init__` reads settings). Pattern established in PR #439.
+- External service mocks belong in `conftest.py` at the suite level, never scattered across individual test files

@@ -193,3 +193,28 @@ status: active
 - Smoke: post-deploy checks in <30s
 - E2E: critical user journeys only, stable and maintainable
 - Regression: nightly scheduled run with visible failure path
+
+---
+
+## Critical Learning: External Service Mocking (PR #439 Pattern)
+
+**Rule:** Integration and performance tests must NEVER call real external services — not even their constructors.
+
+**Pattern:** All external service mocks go in a centralized `_mock_external_services` autouse fixture in the suite's `conftest.py`:
+
+```python
+@pytest.fixture(autouse=True)
+def _mock_external_services():
+    with (
+        patch("sdr_backend.utils.clients.scheduler.SchedulerApi.create_scheduler", ...),
+        patch("sdr_backend.utils.clients.trigger.TriggerApi.create_trigger", ...),
+        patch("sdr_backend.utils.clients.inbox_rotation.InboxRotationApi.get_warmup_status", ...),
+        patch("sdr_backend.utils.clients.agent_client.AgentClient.__init__", lambda self: None),
+        # Add ALL external clients here — never in individual test files
+    ):
+        yield
+```
+
+**Why:** Settings singletons get poisoned across test suites. Per-file fixtures are fragile and easy to miss. Centralized conftest fixtures guarantee no test ever leaks to real services.
+
+**Applies to:** `tests/integration/conftest.py`, `tests/performance/conftest.py`, and any new test suite that uses real DB (Testcontainers) but needs external services mocked.
