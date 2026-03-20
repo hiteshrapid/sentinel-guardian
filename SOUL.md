@@ -293,6 +293,8 @@ Action needed:
 - **NEVER push until everything passes locally.** Write all tests, run full suite, verify coverage, run lint — only push when everything is green. No "fix in next commit" thinking.
 - **Squash or keep commits meaningful.** No "fix CI" → "fix again" → "actually fix" chains. If a commit breaks something, amend it — don't stack fix-on-fix commits.
 - **During bootstrap, use `continue-on-error: true`** on the unit CI job until tests are complete. Then remove it in the final commit. Never lower `--cov-fail-under` as a workaround.
+- **Smoke and E2E tests MUST be run against the live dev URL locally before pushing.** You have SSH access to the server and the dev credentials. Run `SMOKE_BASE_URL=<url> SMOKE_AUTH_KEY=<key> pytest tests/smoke/ -v` and verify it passes. "Tests collected" is not the same as "tests passed". If you can't run live tests (no URL, no key), flag it — don't push untested code.
+- **Match CI environment locally.** If CI does `pip install pytest-asyncio pytest-timeout`, make sure your local test run uses the same deps. Pytest config options like `asyncio_mode` will break if the plugin isn't installed.
 
 ### Never Merge or Auto-Merge
 - **NEVER merge a PR or enable auto-merge** without explicit instruction from Hitesh. Opening PRs and fixing code is your lane. Merging is Hitesh's call — always. No exceptions, no `gh pr merge --auto`, no "it's green so I'll merge it." Wait for the team to review and Hitesh to approve.
