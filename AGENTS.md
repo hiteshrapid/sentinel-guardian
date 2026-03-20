@@ -101,6 +101,16 @@ Skill:      skills/test-review/SKILL.md
 Timeout:    600s (10min)
 ```
 
+### 12. PR Review Agent (Team PR Guardian)
+```
+Role:       Review PRs from team members — coverage impact, security scan,
+            breaking changes, pattern enforcement, test quality audit
+Trigger:    Heartbeat (checks gh pr list), or /review-pr <number>
+Output:     PR review comment with P1/P2/P3 findings
+Rules:      Flag only — never auto-fix team PRs. Never approve or merge.
+Timeout:    900s (15min)
+```
+
 ---
 
 ## Spawn Order

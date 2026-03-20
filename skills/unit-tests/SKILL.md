@@ -93,7 +93,7 @@ omit = ["*/tests/*", "*/migrations/*", "*/alembic/*"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 100
 show_missing = true
 ```
 

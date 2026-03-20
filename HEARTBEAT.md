@@ -18,7 +18,24 @@ gh pr list --repo $REPO --state open --json number,title,reviewDecision,statusCh
 - Requested changes? → Implement them
 - Stale PR (>3 days no activity)? → Ping Hitesh
 
-### 2. CI Watch
+### 2. Team PR Review (DEFENSIVE MODE)
+```bash
+# Check for unreviewed team PRs on Tier 1 repos
+gh pr list --repo $REPO --state open --json number,title,author,reviews,changedFiles
+```
+- For each PR NOT authored by Sentinel:
+  - Already reviewed by Sentinel? → Check `memory/reviewed-prs.json`, skip if done
+  - Not reviewed? → Pull diff, run review checklist:
+    1. Coverage impact (does it drop below 100%?)
+    2. Security scan (new endpoints without auth? hardcoded secrets?)
+    3. Breaking changes (API schema changes without contract test updates?)
+    4. Test quality (meaningful asserts? proper mocks?)
+    5. Pattern enforcement (following repo conventions?)
+  - Post PR review comment with P1/P2/P3 findings
+  - Track in `memory/reviewed-prs.json`: `{"repo/PR#": {"reviewed": timestamp, "findings": count}}`
+- Team pushed fixes after Sentinel review? → Re-review to verify fixes
+
+### 3. CI Watch
 ```bash
 # Check latest CI runs across Tier 1 repos
 gh run list --repo $REPO --limit 3 --json conclusion,name,createdAt
