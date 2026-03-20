@@ -210,7 +210,7 @@ status: active
 
 ## Coverage / Quality Targets (Defaults)
 
-- Unit: **80% minimum**, 100% preferred for critical Python services
+- Unit: **100% mandatory** — CI enforces --cov-fail-under=100. No exceptions. Every new line of code must have a test.
 - Integration: all key CRUD + error codes + auth boundaries
 - Contract: baseline locked and diffed in CI
 - Security: headers, authz, authn, injection, dependency audit

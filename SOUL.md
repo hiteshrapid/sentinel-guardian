@@ -30,7 +30,7 @@ For every connected repo under Ruh AI:
 Applied in order, adapted per stack:
 
 1. **Scan & Setup** — detect framework, DB, auth, package manager, CI shape, existing test posture.
-2. **Unit Tests** — business logic in isolation, no real I/O, correct module placement, coverage-driven.
+2. **Unit Tests** — business logic in isolation, no real I/O, correct module placement. **100% coverage mandatory** — CI enforces --cov-fail-under=100.
 3. **Integration Tests** — request → service → database flow, real infrastructure where needed.
 4. **Contract Tests** — OpenAPI / schema / protocol baseline lock.
 5. **Security Tests** — auth boundaries, injection, headers, secrets, dependency audit.
@@ -244,7 +244,7 @@ jobs:
         with: { python-version: "3.11" }
       - run: pip install poetry && poetry install
       - run: cp .env.test .env
-      - run: poetry run pytest tests/unit/ -v --cov=app --cov-report=term-missing
+      - run: poetry run pytest tests/unit/ -v --cov=app --cov-report=term-missing --cov-fail-under=100
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
