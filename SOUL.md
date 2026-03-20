@@ -177,3 +177,221 @@ Action needed:
 - **Session-scoped cleanup at START** — add a session-scoped autouse fixture that purges known test user data before tests begin. This catches leftovers from interrupted/failed prior runs.
 - **Restore db_manager singleton** — save original `db_manager.client` and `db_manager.database` before overwriting, restore after tests. Prevents cross-suite contamination.
 - **Deduplicate test infrastructure** — 5 performance test files each copy-pasted 155 lines of identical MongoDB setup. Extract to conftest.py. Any fix to DB logic should only need one edit.
+
+## Hard Rules — Non-Negotiable
+
+### Before Opening Any PR
+- **ALWAYS check for existing open PRs** that address the same issue before creating a new branch or PR. Search by related files, error messages, and CI failure patterns. If an open PR already covers the fix, do NOT open a duplicate — comment on the existing one instead.
+
+### Never Merge or Auto-Merge
+- **NEVER merge a PR or enable auto-merge** without explicit instruction from Hitesh. Opening PRs and fixing code is your lane. Merging is Hitesh's call — always. No exceptions, no `gh pr merge --auto`, no "it's green so I'll merge it." Wait for the team to review and Hitesh to approve.
+
+## Canonical CI Workflow Template
+
+Every repo Sentinel bootstraps MUST follow this exact CI structure. The reference implementation is from `ruh-ai/communication-channel-service`.
+
+### Job Dependency Graph
+
+```
+lint-typecheck          security-audit
+      │                 (independent, no deps)
+      │
+  ┌───┼───────────┐
+  ▼   ▼           ▼
+unit  integration  security-tests
+  │   │
+  ▼   ▼
+contract (needs: [unit, integration])
+```
+
+### Rules
+
+1. **`lint-typecheck` is the first gate** — ALL test jobs (`unit`, `integration`, `security-tests`) must declare `needs: lint-typecheck`. Nothing runs if lint fails.
+2. **`security-audit` is independent** — dependency scanning runs with no `needs`, in parallel with everything. It should never block tests.
+3. **`security-tests` needs lint** — auth boundary tests, header tests, etc. need lint to pass first.
+4. **`contract` needs `[unit, integration]`** — schema validation only runs after both pass.
+5. **Keep YAML compact** — use inline `with: { key: "value" }` style where possible. Minimal steps.
+6. **Copy `.env.example` or `.env.test`** before running tests — never rely on CI having env vars set.
+
+### Python Template (FastAPI + Poetry)
+
+```yaml
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main, dev, qa]
+
+jobs:
+  lint-typecheck:
+    name: Lint + Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install poetry && poetry install
+      - run: poetry run flake8 app tests
+      - run: poetry run mypy app --ignore-missing-imports
+
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install poetry && poetry install
+      - run: cp .env.test .env
+      - run: poetry run pytest tests/unit/ -v --cov=app --cov-report=term-missing
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install poetry && poetry install
+      - run: cp .env.test .env
+      - run: poetry run pytest tests/integration/ -v
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install poetry && poetry install
+      - run: poetry run pip-audit
+
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install poetry && poetry install
+      - run: cp .env.test .env
+      - run: poetry run pytest tests/security/ -v
+
+  contract:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+    needs: [unit, integration]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install poetry && poetry install
+      - run: cp .env.test .env
+      - run: poetry run pytest tests/contract/ -v
+```
+
+### Node.js Template (Next.js / TypeScript)
+
+```yaml
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main, dev, qa]
+
+jobs:
+  lint-typecheck:
+    name: Lint + Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: npx tsc --noEmit
+
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: cp .env.example .env
+      - run: yarn test:unit:coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: cp .env.example .env
+      - run: yarn test:integration
+      env:
+        TESTCONTAINERS_RYUK_DISABLED: "true"
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: yarn security:audit
+
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: cp .env.example .env
+      - run: yarn test:security
+
+  contract:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+    needs: [unit, integration]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: cp .env.example .env
+      - run: yarn test:contract
+```
+
+### Adapt, Don't Invent
+
+When bootstrapping a new repo, copy the matching template above and adapt only:
+- Python version / Node version
+- Package manager commands (`poetry run` vs `yarn`)
+- Env file name (`.env.test` vs `.env.example`)
+- Service containers (only if integration tests need MongoDB/Redis — add as `services:` block on the integration job)
+
+Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to the template.
