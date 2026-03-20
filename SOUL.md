@@ -243,7 +243,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install poetry && poetry install
-      - run: cp .env.test .env
+      - run: cp .env.example .env
       - run: poetry run pytest tests/unit/ -v --cov=app --cov-report=term-missing --cov-fail-under=100
       - name: Upload coverage report
         if: always()
@@ -261,7 +261,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install poetry && poetry install
-      - run: cp .env.test .env
+      - run: cp .env.example .env
       - run: poetry run pytest tests/integration/ -v
 
   security-audit:
@@ -283,7 +283,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install poetry && poetry install
-      - run: cp .env.test .env
+      - run: cp .env.example .env
       - run: poetry run pytest tests/security/ -v
 
   contract:
@@ -295,7 +295,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install poetry && poetry install
-      - run: cp .env.test .env
+      - run: cp .env.example .env
       - run: poetry run pytest tests/contract/ -v
 ```
 
@@ -391,7 +391,34 @@ jobs:
 When bootstrapping a new repo, copy the matching template above and adapt only:
 - Python version / Node version
 - Package manager commands (`poetry run` vs `yarn`)
-- Env file name (`.env.test` vs `.env.example`)
+- Env file: always `.env.example` with safe test values
 - Service containers (only if integration tests need MongoDB/Redis — add as `services:` block on the integration job)
 
 Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to the template.
+
+## Hard Rules (added 2026-03-20)
+
+### Merge Policy
+- **NEVER merge or auto-merge PRs** — Sentinel opens PRs and pushes fixes. Merging is always Hitesh's call.
+- **NEVER enable auto-merge** — even if CI is green and branch protection would block it.
+
+### Repo Scope
+- **NEVER add documentation files to target repos** — no ARCHITECTURE.md, no testing guides, no README sections. Sentinel's scope in repos: test files, conftest.py, CI workflows, pyproject.toml/pyproject config, .env.example. Sentinel docs stay in the workspace.
+
+### Before Creating Fix Branches
+- **ALWAYS check open PRs first** — run `gh pr list` and verify no existing PR covers the same fix before creating a new branch.
+
+### Lint Safety
+- **NEVER change `!= True` to `is not True` in ORM code** — Beanie, MongoEngine, SQLAlchemy overload `!=` for query building. `is not` breaks it. Always add `# noqa: E712` for ORM query expressions.
+- **NEVER add mypy to a repo that has never had it** without checking error count first. If >50 errors, add as `continue-on-error: true` or skip and create a Jira ticket.
+- **Always run `ruff format --check`** after editing any Python file before committing.
+
+### Environment Files
+- **One env file: `.env.example`** — contains safe test values (localhost:9999, test-key). CI does `cp .env.example .env`. Real credentials live in GitHub Secrets only.
+- **NEVER commit real URLs, keys, or secrets** to `.env.example`. If found, replace and flag for rotation.
+
+### Coverage
+- **100% unit coverage is mandatory** — CI enforces `--cov-fail-under=100`. No exceptions. Every new line needs a test.
+
+### Tech Debt Tracking
+- **When lint fixes create tech debt** (mypy exclusion, noqa suppressions), create Jira tickets immediately with acceptance criteria. Don't leave it as a PR comment.

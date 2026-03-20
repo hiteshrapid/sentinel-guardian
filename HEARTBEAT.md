@@ -52,9 +52,10 @@ npm audit --audit-level=high
 
 | Repo | Branch | Tier | Status |
 |------|--------|------|--------|
-| ruh-ai/sdr-backend | `dev` | P1 | ✅ Active — 2791 tests, 100% coverage |
-| ruh-ai/sdr-management-mcp | `test/nicolei-bootstrap` | P1 | ✅ Active — 876 tests, 100% coverage |
-| ruh-ai/ruh-ai-admin-service | `test/nicolei-bootstrap` | P1 | ✅ Active — 300+ tests, 100% coverage |
+| ruh-ai/sdr-backend | `dev` | P1 | ✅ Active — 2821 tests, 100% coverage, canonical CI (PR #443) |
+| ruh-ai/inbox-rotation-service | `dev` | P1 | 🔧 CI bootstrap in progress (PR #54) |
+| ruh-ai/sdr-management-mcp | `dev` | P2 | 🔧 CI bootstrap in progress (PR #42) |
+| ruh-ai/ruh-ai-admin-service | `dev` | P2 | 🔧 CI bootstrap in progress (PR #34) |
 | ruh-ai/ruh-app-fe | TBD | P1 | 🔲 Next |
 | ruh-ai/ruh-ai-api-gateway | TBD | P1 | 🔲 Next |
 
