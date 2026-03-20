@@ -247,3 +247,13 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 **Fix applied:** Reverted to `!= True` with `# noqa: E712` comment explaining why.
 
 **Learning:** In Beanie/MongoEngine/SQLAlchemy code, `!= True` and `== False` are NOT the same as `is not True` / `is False`. ORM query builders overload comparison operators. ALWAYS add `# noqa: E712` when the comparison is part of an ORM query expression. Lint agents must be instructed to skip E712 in repository/model files.
+
+## 2026-03-20 — sdr-backend CI rewrite complete — Jira tickets created
+
+**What happened:** Completed canonical CI rewrite for sdr-backend (PR #443). All 6 CI jobs green. Two tech debt items tracked in Jira.
+
+**Jira tickets:**
+- RP-356: Adopt mypy type checking in sdr-backend CI (Medium)
+- RP-357: Clean up noqa suppressions and linting gaps (Low)
+
+**Learning:** When lint fixes create tech debt (mypy exclusion, noqa suppressions), always create tracking tickets immediately. Don't leave it as "we'll get to it later" in a PR comment — put it in the backlog with acceptance criteria.
