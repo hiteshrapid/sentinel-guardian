@@ -237,3 +237,13 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 **Root cause:** Repo had substantial existing unit/integration coverage but no GitHub Actions test workflow and no separate security/contract suites.
 **Fix applied:** Added `.github/workflows/ci.yml`, `tests/security/`, `tests/contract/`, unit HTTP-leak protection in `tests/unit/conftest.py`, and missing dev dependencies (`ruff`, `pytest-timeout`, `pip-audit`, `bandit`). Opened PR #54.
 **Learning:** Some Ruh AI repos already have broad test coverage but are missing CI enforcement and higher-order guardrails. Bootstrap should prioritize workflow wiring and safety layers before writing lots of new unit tests.
+
+## 2026-03-20 — sdr-backend canonical CI — Beanie != vs is not
+
+**What happened:** Ruff E712 fix changed `Customer.is_deleted != True` to `Customer.is_deleted is not True`, breaking Beanie's query builder in integration tests.
+
+**Root cause:** Beanie overloads `!=` to build MongoDB query expressions. `is not` is a Python identity check that returns a plain `bool`, which Beanie then tries to call `.items()` on.
+
+**Fix applied:** Reverted to `!= True` with `# noqa: E712` comment explaining why.
+
+**Learning:** In Beanie/MongoEngine/SQLAlchemy code, `!= True` and `== False` are NOT the same as `is not True` / `is False`. ORM query builders overload comparison operators. ALWAYS add `# noqa: E712` when the comparison is part of an ORM query expression. Lint agents must be instructed to skip E712 in repository/model files.
