@@ -257,3 +257,68 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 - RP-357: Clean up noqa suppressions and linting gaps (Low)
 
 **Learning:** When lint fixes create tech debt (mypy exclusion, noqa suppressions), always create tracking tickets immediately. Don't leave it as "we'll get to it later" in a PR comment — put it in the backlog with acceptance criteria.
+
+## 2026-03-20 — Heartbeat: inbox-rotation-service — Post-Deploy CI fix
+
+**What happened:** Post-Deploy Tests workflow failed on dev after first trigger. Smoke tests exited with code 4 — `asyncio_mode` config option unknown.
+**Root cause:** `pytest.ini` has `asyncio_mode = auto` + `--strict-config`, but the smoke/e2e workflow steps only installed `pytest-timeout`, not `pytest-asyncio`. Without the plugin, the config option is rejected.
+**Fix applied:** Added `pytest-asyncio` to the pip install step in all smoke/e2e jobs across `post-deploy.yml` and `regression.yml`.
+**Learning:** When `pytest.ini` uses `--strict-config` + `asyncio_mode`, ALL workflow steps that run pytest must install `pytest-asyncio` — even for sync-only test suites. The config is validated at collection time regardless of test content.
+
+## 2026-03-20 — Heartbeat: inbox-rotation-service — Team PR #53 review
+
+**What happened:** Large team PR (1,181 additions, 14 files) adding email delivery status tracking, NDR processing, suppression lists, and email validation — with zero tests and no CI running.
+**Root cause:** Feature branch likely predates CI workflow or wasn't rebased onto dev.
+**Fix applied:** Posted detailed Sentinel review with 3 P1 blockers (no tests, no CI, sync MongoDB concern) and 5 P2/P3 findings.
+**Learning:** Large feature PRs without tests are the highest-risk pattern. Flag immediately — don't wait for CI to catch coverage drops because CI may not even be running.
+
+## 2026-03-20 — Heartbeat: sdr-backend — Team PR #440 review
+
+**What happened:** Small 1-line fix adding missing `sent` accumulator to MongoDB aggregation pipeline.
+**Root cause:** Unit tests mock the aggregate result (not the pipeline), so the missing field was invisible to tests.
+**Fix applied:** Reviewed and flagged as clean. Noted the mock-vs-pipeline coverage gap as a P3 observation.
+**Learning:** MongoDB pipeline bugs can hide behind mocked aggregate results in unit tests. Integration tests with seeded data are the only reliable way to catch missing accumulators.
+
+## 2026-03-20 — inbox-rotation-service — Post-Deploy fix on dev (NOT caught before push)
+
+**What happened:** Post-Deploy Tests failed on dev immediately after PR #54 merge. Smoke tests exited code 4 — `asyncio_mode` unknown config.
+**Root cause:** I only ran `pytest tests/smoke/ --collect-only` locally where `pytest-asyncio` was already installed. I never simulated the CI environment which only installs `pytest-timeout`. The `--strict-config` flag in pytest.ini rejects unknown options.
+**Fix applied:** PR #55 — add `pytest-asyncio` to pip install in all smoke/e2e workflow steps.
+**Learning:** "Run locally before pushing" means simulating the CI dep install, not just running in a fully-loaded dev env. For workflow changes, mentally trace each `run:` step and verify all pytest plugins required by `pytest.ini` are explicitly installed. Better: add ALL test deps to the poetry dev group so `poetry install` covers everything — then no `pip install` step is needed.
+
+## 2026-03-20 — inbox-rotation-service — Local post-deploy validation before push
+
+**What happened:** Hitesh clarified that branch fixes must be validated against a local app instance, not the live dev URL, because dev will not reflect branch changes until merge.
+**Root cause:** I was using live dev smoke as a validation proxy for unmerged workflow/test changes. That catches deployed drift, but not branch-only fixes.
+**Fix applied:** Switched validation to localhost with local Mongo + Redis + uvicorn. Fixed regression CI (`pip-audit` missing), then corrected E2E assumptions to match the real API surface: inbox CRUD endpoints require `owner_email` query params and `PUT`, domain block/unblock uses `PATCH /admin/domains/{domain}/block|unblock`, and tenant E2E should provision a real `ir_*` API key via admin instead of reusing admin auth.
+**Learning:** Use two modes intentionally: localhost for pre-merge branch validation, live dev for post-merge deploy validation. Never use staging/dev as a stand-in for unmerged code.
+
+## 2026-03-20 — inbox-rotation-service — Security job CVE findings
+
+**What happened:** Regression security job failed. Initially looked like only a missing `pip-audit` tool in CI. Running pip-audit locally revealed two real CVEs once the tool was available.
+**Root cause (two layers):**
+1. `pip-audit` not installed in regression security job — test crashed before scanning
+2. Once tool is installed, real findings: `python-multipart 0.0.20` (CVE-2026-24486 → fix: 0.0.22) and `starlette 0.48.0` (CVE-2025-62727 → fix: 0.49.1)
+**Fix applied:** PR #55 adds `pip-audit` to the CI install step. Dep upgrades needed in a separate PR.
+**Learning:** When a security test fails because the tool is missing, always run the tool locally before reporting "just a CI wiring issue". The real scan may reveal actual vulnerabilities.
+
+## 2026-03-21 — Heartbeat: sdr-backend — nightly regression triage
+
+**What happened:** The latest Nightly Regression Suite failed in the smoke stage before any endpoint assertions ran.
+**Root cause:** Environment/config drift — `SMOKE_BASE_URL` and `SMOKE_AUTH_KEY` were empty in CI, so smoke tests built an invalid URL and crashed with `httpx.UnsupportedProtocol`.
+**Fix applied:** Triaged the failing run and identified missing regression environment variables/secrets as the blocking issue.
+**Learning:** Regression smoke jobs must hard-fail early on missing base URL/auth env instead of surfacing a low-signal HTTP client protocol error.
+
+## 2026-03-21 — Heartbeat: inbox-rotation-service — nightly regression triage
+
+**What happened:** The latest Nightly Regression Suite failed in the security test layer.
+**Root cause:** Config/test design issue — the dependency audit test treats `pip-audit`'s inability to audit the local package `inbox-rotation (0.2.0)` as a security vulnerability failure.
+**Fix applied:** Triaged the failing run and isolated the failing test to `tests/security/test_dependency_audit.py::TestDependencyAudit::test_no_known_vulnerabilities`.
+**Learning:** Security audit tests must distinguish real vulnerable dependencies from expected local-package resolution noise, or they create false red regressions.
+
+## 2026-03-21 — Heartbeat: multi-repo — regression and CI triage
+
+**What happened:** Morning heartbeat found two failed nightly regressions (`sdr-backend`, `inbox-rotation-service`) and one failed frontend deploy (`ruh-app-fe`). Also found multiple open PRs in `ruh-app-fe` and `ruh-ai-api-gateway` with no status checks attached.
+**Root cause:** `sdr-backend` regression smoke job ran with an empty base URL/auth config; `inbox-rotation-service` security suite treats the first-party package missing from PyPI as a vulnerability; `ruh-app-fe` deploy is blocked by a TypeScript error in `app/api/voiceChannel.ts` where `APIError.message` is accessed without a valid type guard.
+**Fix applied:** Triage only during heartbeat — collected failing job names, logs, and concrete root causes to route follow-up fixes.
+**Learning:** Nightly/post-deploy failures here are mostly workflow/config-contract issues, not broad suite regressions. For smoke/deploy pipelines, verify required environment variables are wired and non-empty before the test/build step; for dependency audits, exclude first-party packages or audit from a lock/requirements export instead of the installed project metadata.
