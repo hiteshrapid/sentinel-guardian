@@ -322,3 +322,10 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 **Root cause:** `sdr-backend` regression smoke job ran with an empty base URL/auth config; `inbox-rotation-service` security suite treats the first-party package missing from PyPI as a vulnerability; `ruh-app-fe` deploy is blocked by a TypeScript error in `app/api/voiceChannel.ts` where `APIError.message` is accessed without a valid type guard.
 **Fix applied:** Triage only during heartbeat — collected failing job names, logs, and concrete root causes to route follow-up fixes.
 **Learning:** Nightly/post-deploy failures here are mostly workflow/config-contract issues, not broad suite regressions. For smoke/deploy pipelines, verify required environment variables are wired and non-empty before the test/build step; for dependency audits, exclude first-party packages or audit from a lock/requirements export instead of the installed project metadata.
+
+## 2026-03-21 — Heartbeat: tier-1 repos — morning watch triage
+
+**What happened:** Morning heartbeat found two active Tier 1 nightly regression failures (`sdr-backend`, `inbox-rotation-service`) and multiple open Tier 1 PRs with no attached status checks, including several stale API gateway PRs.
+**Root cause:** `sdr-backend` smoke regression ran with empty `SMOKE_BASE_URL` and `SMOKE_AUTH_KEY`; `inbox-rotation-service` dependency audit fails because `pip-audit` tries to audit the first-party package `inbox-rotation` from PyPI; frontend and API gateway PR workflows/check attachments are missing or not triggering on several open PRs.
+**Fix applied:** Heartbeat triage only — gathered live run/job evidence, failed-step logs, and the exact failing conditions to drive follow-up fixes.
+**Learning:** Treat empty smoke env vars and first-party package audit noise as workflow contract problems, not product regressions. For PR health, missing `statusCheckRollup` across many open PRs is itself an alert that workflow triggers or branch protection need review.
