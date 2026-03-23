@@ -138,3 +138,16 @@
 6. eslint no-var rule hit declare var process in the stub → add eslint-disable-next-line
 
 **Learning:** For TS 6.x Next.js projects: always commit node-globals.d.ts stub + css.d.ts + ignoreDeprecations:6.0 as part of bootstrap. Add @types/node to devDependencies so it goes into yarn.lock. Never commit package-lock.json in a Yarn project.
+
+## 2026-03-23 — Heartbeat: sdr-management-mcp — pip-audit false positive + CVE bumps
+
+**What happened:** pip-audit in MCP CI kept failing despite grep filter for ruh-campaign-mcp. 
+**Root cause:** `uv export --no-editable` outputs `.` as the first non-comment line (self-reference to current project). pip-audit resolves `.` → installs local project → tries to audit `ruh-campaign-mcp` on PyPI → fails. The grep filter only excluded `^ruh-campaign-mcp`, not `^.$`.
+**Fix applied:** Added `^\.$` to the grep exclusion pattern. Also bumped 6 fixable CVEs (black, cryptography, filelock, urllib3, pyjwt, python-multipart).
+**Learning:** `uv export` always includes `.` as self-reference even with `--no-editable`. Always filter `^\.$` from requirements before pip-audit. This applies to all uv-managed projects.
+
+## 2026-03-23 — Heartbeat: inbox-rotation — re-review PR #53
+
+**What happened:** Team (AdityaRuh) pushed 3 commits adding 107 test methods after initial review flagged zero tests.
+**Action:** Posted re-review acknowledging P1s resolved, noting remaining P2s (unbounded DNS cache, no body size limits, missing .env.example defaults).
+**Learning:** Review feedback works — team delivered 107 tests from zero. Follow-up P2s tracked for next cycle.
