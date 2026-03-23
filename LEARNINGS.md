@@ -100,3 +100,28 @@
 **Root cause:** pip-audit runs against the full environment including the private `inbox-rotation` package, which isn't on PyPI. The fix was already committed to dev (PR #54 merged earlier).
 **Fix applied:** None needed — fix already on dev. Tonight's nightly will pass.
 **Learning:** pip-audit always tries to audit the local package itself. The `"dependency not found on PyPI"` check in `test_dependency_audit.py` handles this correctly once merged.
+
+## 2026-03-23 — Bootstrap: ruh-super-admin-fe — CI fix round
+
+**What happened:** First CI push for ruh-super-admin-fe bootstrap PR #139 failed on two jobs:
+1. Security Audit: `npm audit` rejected (no package-lock.json — Yarn project)
+2. Lint + Type Check: `tsc` failed with TS5101 (baseUrl deprecated in TS 6.x) and TS2882/TS2591 errors (CSS imports + process global + NodeJS.Timeout require @types/node in TS 6.x)
+
+**Root causes:**
+- Yarn projects don't have package-lock.json → use `yarn audit --groups dependencies --level high`
+- TypeScript 6.x removed implicit Node.js globals — `process.env`, `NodeJS.Timeout` require explicit `@types/node`
+- CSS side-effect imports now require a type declaration in TS 6.x (`declare module "*.css"`)
+- `@types/node` is 10MB+ — couldn't install locally due to disk (19/20GB used); must be installed explicitly in CI
+
+**Fix applied:**
+- Created `src/css.d.ts` (CSS module type stub)
+- Created `src/types/node-globals.d.ts` (minimal NodeJS.Timeout + process stubs — committed to repo)
+- Added `ignoreDeprecations: "6.0"` to tsconfig.json
+- CI workflow: install `@types/node` as explicit step before typecheck
+- CI workflow: switch to `yarn audit` for security scanning
+- Bumped next 15.3.3→15.3.9 (3 CVEs) and axios ^1.10→^1.13.5 (2 CVEs)
+
+**Learning:**
+- **TypeScript 6.x requires `@types/node` explicitly** — no longer implicit. Bootstrap new projects by checking TS version first; if >=6.0, ensure @types/node is in devDependencies or committed stubs exist.
+- **Always use `yarn audit` (not `npm audit`) for Yarn projects** — npm audit requires package-lock.json, which Yarn projects don't have.
+- **Disk usage on the VPS is at 95%** — avoid large package installs locally; rely on CI for heavy dependencies. Consider cleaning /home/hitesh/.cache/pypoetry and yarn cache regularly.
