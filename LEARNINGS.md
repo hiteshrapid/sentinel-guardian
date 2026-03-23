@@ -329,3 +329,15 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 **Root cause:** `sdr-backend` smoke regression ran with empty `SMOKE_BASE_URL` and `SMOKE_AUTH_KEY`; `inbox-rotation-service` dependency audit fails because `pip-audit` tries to audit the first-party package `inbox-rotation` from PyPI; frontend and API gateway PR workflows/check attachments are missing or not triggering on several open PRs.
 **Fix applied:** Heartbeat triage only — gathered live run/job evidence, failed-step logs, and the exact failing conditions to drive follow-up fixes.
 **Learning:** Treat empty smoke env vars and first-party package audit noise as workflow contract problems, not product regressions. For PR health, missing `statusCheckRollup` across many open PRs is itself an alert that workflow triggers or branch protection need review.
+
+## 2026-03-23 — Heartbeat: inbox-rotation-service — PR #53 follow-up review + nightly regression fix
+
+**What happened:** Follow-up review of PR #53 (SDR-908) after Aditya pushed 9 commits addressing original P1/P2 findings. Also fixed nightly regression failure on dev.
+
+**PR #53 status:** All 3 P1 blockers resolved (71 unit tests added, sync MongoDB documented, CI green). All 5 P2 items resolved (cache bounded, body size limited, .env.example updated, return type tested, error patterns tested). Two new P2 findings posted: catch-all test file `test_sdr908_coverage.py` should be split into module-aligned files, and conftest mock patch locations should be verified against lazy import paths.
+
+**Nightly regression root cause:** `pip-audit --strict` exits non-zero when `inbox-rotation` (private package, v0.2.0) is not on PyPI. The test treated any non-zero exit as a vulnerability finding. Not related to PR #53 — exists on dev branch.
+
+**Fix applied:** Updated `test_dependency_audit.py` to recognize "Dependency not found on PyPI" as a non-vulnerability condition. Opened PR #57.
+
+**Learning:** Private/internal Python packages will always fail `pip-audit --strict` because they're not on PyPI. Always add a carve-out for the "not found on PyPI" warning when bootstrapping pip-audit tests for private packages. This pattern should be applied to all repos with pip-audit tests.
