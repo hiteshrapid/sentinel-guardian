@@ -306,12 +306,11 @@ Every repo Sentinel bootstraps MUST follow this exact CI structure. The referenc
 ### Job Dependency Graph
 
 ```
-lint-typecheck          security-audit
-      │                 (independent, no deps)
+lint-typecheck              security-audit (independent, continue-on-error: true)
       │
-  ┌───┼───────────┐
-  ▼   ▼           ▼
-unit  integration  security-tests
+  ┌───┼───────────┬────────────┐
+  ▼   ▼           ▼            ▼
+unit  integration  security-tests  resilience
   │   │
   ▼   ▼
 contract (needs: [unit, integration])
@@ -325,6 +324,13 @@ contract (needs: [unit, integration])
 4. **`contract` needs `[unit, integration]`** — schema validation only runs after both pass.
 5. **Keep YAML compact** — use inline `with: { key: "value" }` style where possible. Minimal steps.
 6. **Copy `.env.example` or `.env.test`** before running tests — never rely on CI having env vars set.
+7. **`resilience` is a standard job for backend services** — needs lint-typecheck, runs in parallel with unit/integration/security-tests. Skip only for frontends, proto repos, or libraries with no external deps.
+
+### continue-on-error Policy (Non-Negotiable)
+- **ONLY `security-audit` (pip-audit) gets `continue-on-error: true`** — external vuln databases can be flaky
+- **Every other job is blocking** — if it fails, the pipeline fails. No exceptions.
+- **Never add `continue-on-error` to**: unit, integration, security-tests, contract, resilience, lint-typecheck, smoke, e2e
+- **Rationale:** Silent failures are not acceptable. If tests fail, we need to know immediately. A green pipeline must mean everything actually passed.
 
 ### Python Template (FastAPI + Poetry)
 
@@ -380,6 +386,7 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -398,6 +405,18 @@ jobs:
       - run: pip install poetry && poetry install
       - run: cp .env.example .env
       - run: poetry run pytest tests/security/ -v
+
+  resilience:
+    name: Resilience Tests
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install poetry && poetry install
+      - run: cp .env.example .env
+      - run: poetry run pytest tests/resilience/ -v
 
   contract:
     name: Contract Tests
@@ -467,6 +486,7 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -524,6 +544,9 @@ Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to
 ### Before Creating Fix Branches
 - **ALWAYS check open PRs first** — run `gh pr list` and verify no existing PR covers the same fix before creating a new branch.
 
+### continue-on-error
+- **NEVER add `continue-on-error: true` to any CI job except `security-audit` (pip-audit).** If a job fails, the pipeline must fail. This is non-negotiable. Silent green pipelines with hidden failures are worse than red pipelines.
+
 ### Lint Safety
 - **NEVER change `!= True` to `is not True` in ORM code** — Beanie, MongoEngine, SQLAlchemy overload `!=` for query building. `is not` breaks it. Always add `# noqa: E712` for ORM query expressions.
 - **NEVER add mypy to a repo that has never had it** without checking error count first. If >50 errors, add as `continue-on-error: true` or skip and create a Jira ticket.
@@ -536,7 +559,7 @@ Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to
 ### Coverage
 - **100% unit coverage is mandatory** — CI enforces `--cov-fail-under=100`. No exceptions. Every new line needs a test.
 - **NEVER lower `--cov-fail-under`** — the threshold only goes UP, never down. If tests aren't written yet, leave CI failing — don't fake green by lowering the bar.
-- **During bootstrap**: set `--cov-fail-under=100` from the start. If coverage isn't there yet, use `continue-on-error: true` on the unit job until tests are complete. Then remove `continue-on-error`. Never set a lower threshold as a "temporary" measure.
+- **During bootstrap**: set `--cov-fail-under=100` from the start. If coverage isn't there yet, use `continue-on-error: true` on the unit job ONLY until tests are complete. Then remove `continue-on-error` in the final commit. This is the ONLY acceptable use of `continue-on-error` on a test job — and it's temporary.
 
 ### Tech Debt Tracking
 - **When lint fixes create tech debt** (mypy exclusion, noqa suppressions), create Jira tickets immediately with acceptance criteria. Don't leave it as a PR comment.
@@ -549,7 +572,7 @@ Every repo Sentinel bootstraps MUST also include a `post-deploy.yml` that runs s
 
 | File | Trigger | Purpose |
 |------|---------|---------|
-| `ci.yml` | PR + push to dev/main/qa | Lint → Unit → Integration → Security → Contract |
+| `ci.yml` | PR + push to dev/main/qa | Lint → Unit / Integration / Security / Resilience → Contract |
 | `post-deploy.yml` | After successful deploy to dev | Smoke → E2E against live environment |
 | `regression.yml` | Nightly cron + manual dispatch | Full suite + Smoke + E2E + Slack alerts |
 
