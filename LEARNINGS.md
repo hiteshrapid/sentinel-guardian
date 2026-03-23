@@ -72,3 +72,31 @@
 - When security test fails because tool is missing, run the tool locally — may reveal real CVEs
 - Nightly failures are usually workflow/config-contract issues, not real regressions
 - Missing `statusCheckRollup` across many PRs = workflow triggers or branch protection need review
+
+## 2026-03-23 — Heartbeat: smtp-imap-mcp — CI fix (lint gate)
+
+**What happened:** PR #5 CI failed at lint-typecheck gate — ruff F403/F405 on `src/server.py` star imports.
+**Root cause:** `src/server.py` uses `from .constants.schema import *` and `from .services.email_provider import *` — pre-existing project pattern, not a test file issue. ruff correctly flagged them but they're intentional.
+**Fix applied:** Added `[tool.ruff.lint] per-file-ignores = {"src/server.py" = ["F403", "F405"]}` to pyproject.toml.
+**Learning:** When bootstrapping a repo that has pre-existing star imports, add per-file-ignores for source files BEFORE pushing the PR, not after CI fails.
+
+## 2026-03-23 — Heartbeat: sdr-management-mcp — Post-deploy smoke broken
+
+**What happened:** Post-deploy smoke job failing with `pytest: error: unrecognized arguments: --timeout=30`.
+**Root cause:** `pytest-timeout` was not in pyproject.toml dev/test deps, but post-deploy and regression workflows used `--timeout=30` / `--timeout=300` flags.
+**Fix applied:** Added `pytest-timeout>=2.3.0` to both dev and test optional-dependencies. PR #43.
+**Learning:** When writing CI workflows with `--timeout` flags, always check `pytest-timeout` is in deps. Add it to the pyproject as part of the bootstrap, not discovered post-deploy.
+
+## 2026-03-23 — Heartbeat: ruh-ai-admin-service — Security Audit CI failure
+
+**What happened:** Security audit step failing with `The requested command export does not exist.`
+**Root cause:** Poetry 2.x removed the `poetry export` command. Workflow used `poetry export -f requirements.txt` to generate requirements for pip-audit.
+**Fix applied:** Try `pip install poetry-plugin-export` first; fall back to `poetry run pip freeze` if export fails. Handles both Poetry 1.x and 2.x.
+**Learning:** `poetry export` is removed in Poetry 2.x. Always use `poetry-plugin-export` or `poetry run pip freeze` as fallback. For new repos, prefer `uv export` (uv always supports it).
+
+## 2026-03-23 — Heartbeat: inbox-rotation-service — Nightly regression security failure
+
+**What happened:** Nightly regression security tests failed with `inbox-rotation: Dependency not found on PyPI and could not be audited`.
+**Root cause:** pip-audit runs against the full environment including the private `inbox-rotation` package, which isn't on PyPI. The fix was already committed to dev (PR #54 merged earlier).
+**Fix applied:** None needed — fix already on dev. Tonight's nightly will pass.
+**Learning:** pip-audit always tries to audit the local package itself. The `"dependency not found on PyPI"` check in `test_dependency_audit.py` handles this correctly once merged.
