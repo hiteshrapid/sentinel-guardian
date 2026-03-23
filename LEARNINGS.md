@@ -341,3 +341,19 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 **Fix applied:** Updated `test_dependency_audit.py` to recognize "Dependency not found on PyPI" as a non-vulnerability condition. Opened PR #57.
 
 **Learning:** Private/internal Python packages will always fail `pip-audit --strict` because they're not on PyPI. Always add a carve-out for the "not found on PyPI" warning when bootstrapping pip-audit tests for private packages. This pattern should be applied to all repos with pip-audit tests.
+
+## 2026-03-23 — Heartbeat: sdr-management-mcp — E2E test layer + post-deploy workflow added
+
+**What happened:** Completed the final E2E layer for sdr-management-mcp bootstrap. Added 22 E2E journey tests, post-deploy.yml, and smoke+e2e jobs to regression.yml.
+
+**What was built:**
+- `tests/e2e/test_e2e_journeys.py` — 22 tests across 9 classes covering MCP initialization, tool discovery, campaign/customer/email/sequence workflows, error handling, multi-step lifecycle journeys
+- `tests/e2e/conftest.py` — MCPClient helper handling session management and SSE/JSON response parsing
+- `.github/workflows/post-deploy.yml` — triggered after Cloud Run deploy, health check via MCP /mcp endpoint (not /health — MCP servers use protocol endpoint), then smoke → E2E
+- `.github/workflows/regression.yml` — updated to include smoke + E2E jobs with live URL from vars/secrets
+
+**Key learning:** MCP servers (FastMCP) don't expose a `/health` endpoint — health check in post-deploy must hit `/mcp` with an initialize payload to verify the server is alive, not a `/health` path.
+
+**Key learning:** `pytest.mark.timeout(120)` requires a `timeout` marker entry in `[tool.pytest.ini_options]` markers list, or pytest strict-markers will reject collection.
+
+**Result:** PR #40 updated — 931+ tests, 8 layers, all CI green.
