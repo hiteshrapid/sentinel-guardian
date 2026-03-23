@@ -371,3 +371,15 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 **B904 strategy:** For source code raising exceptions inside except blocks without `from err` (B904), add to ruff ignore list rather than modifying source in a test bootstrap PR. Not our scope.
 
 **Result:** 914 tests, 0 lint errors, 0 format issues. CI in progress on new canonical workflow.
+
+## 2026-03-23 — Heartbeat: sdr-management-mcp — E2E tool names must match source exactly
+
+**What happened:** E2E tests used wrong tool names (e.g. "Creating a New SDR Campaign" vs actual "Creating or Updating a Campaign") and wrong parameter names (e.g. "campaign_name" vs "name", "customer_email" vs "customer_email_address").
+
+**Root cause:** Claude Code generated tool names from test descriptions rather than reading actual source. MCP tool names are human-readable strings defined in Tool() constructors — they must match exactly for tools/call to work.
+
+**Fix applied:** Read all tool names from `grep -rn 'name="' sdr_mcp/tools/` and parameter names from schema model_fields. Rewrote all 23 E2E tests with correct names.
+
+**Learning:** For MCP servers, always extract tool names and parameter schemas from source before writing E2E tests. Tool names are not enum-like — they're freeform strings like "Creating or Updating a Campaign" and a single wrong character means the tool won't be found.
+
+**Also learned:** "Updating Campaign ICP" IS a registered tool — the previous E2E test asserting it was disabled was wrong. Always verify disabled/enabled status from source, not assumptions.
