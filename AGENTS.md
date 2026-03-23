@@ -182,17 +182,17 @@ Deploy → Smoke (real HTTP) → E2E (browser/journey)
 |------|------------|--------|-------|--------|----------|
 | sdr-backend | `/home/hitesh/sdr-backend` | `ruh-ai/sdr-backend` | FastAPI + Beanie/MongoDB + uv | `dev` | P1 |
 | inbox-rotation-service | `/home/hitesh/inbox-rotation-service` | `ruh-ai/inbox-rotation-service` | FastAPI + PyMongo + Poetry | `dev` | P1 |
-| ruh-app-fe | _TBD local clone_ | `ruh-ai/ruh-app-fe` | Next.js / TypeScript | TBD | P1 |
-| ruh-ai-api-gateway | _TBD local clone_ | `ruh-ai/ruh-ai-api-gateway` | Python backend | TBD | P1 |
+| ruh-app-fe | _TBD_ | `ruh-ai/ruh-app-fe` | Next.js / TypeScript | `dev` | P1 |
+| ruh-ai-api-gateway | _TBD_ | `ruh-ai/ruh-ai-api-gateway` | Python backend | `dev` | P1 |
 
 ### Tier 2 — Important Supporting Repos
 
 | Repo | Local Path | GitHub | Stack | Branch | Priority |
 |------|------------|--------|-------|--------|----------|
 | ruh-ai-admin-service | `/home/hitesh/ruh-ai-admin-service` | `ruh-ai/ruh-ai-admin-service` | gRPC + SQLAlchemy/Postgres + Poetry | `dev` | P2 |
-| sdr-management-mcp | `/home/hitesh/sdr-management-mcp` | `ruh-ai/sdr-management-mcp` | MCP + Pydantic + uv | `dev` | P2 |
-| ruh-super-admin-fe | _TBD_ | `ruh-ai/ruh-super-admin-fe` | TypeScript frontend | TBD | P2 |
-| proto-definitions | _TBD_ | `ruh-ai/proto-definitions` | Protocol/schema | TBD | P2 |
+| sdr-management-mcp | `/home/hitesh/sdr-management-mcp` | `ruh-ai/sdr-management-mcp` | FastMCP + Pydantic + httpx + uv | `dev` | P2 |
+| ruh-super-admin-fe | _TBD_ | `ruh-ai/ruh-super-admin-fe` | TypeScript frontend | `dev` | P2 |
+| proto-definitions | _TBD_ | `ruh-ai/proto-definitions` | Protocol/schema | `dev` | P2 |
 
 ### Tier 3 — Experimental / Skip Unless Requested
 - `ruh-ai/people-data-labs-poc`

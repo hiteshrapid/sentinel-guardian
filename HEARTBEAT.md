@@ -87,23 +87,23 @@ HEARTBEAT_OK
 
 PRs need attention:
 ```
-⚠️ ruh-ai/sdr-backend PR #47 — 2 unresolved comments (3h old)
-   → Addressing comment: "Add edge case test for null input"
+⚠️ ruh-ai/sdr-backend PR #XX — unresolved review comments
+   → Addressing code review feedback
 ```
 
 CI broken:
 ```
-❌ ruh-ai/ruh-app-fe CI failed on PR #12
-   Root cause: ESLint error in Dashboard.tsx
+❌ ruh-ai/repo-name CI failed on PR #XX
+   Root cause: [identified cause]
    Action: fixing on branch, push incoming
 ```
 
 Regression failed:
 ```
-❌ ruh-ai/sdr-backend nightly regression failed
-   Job: integration
-   Root cause: env drift — MONGODB_URI not set
-   Action: fix branch test/fix-regression-env opened
+❌ ruh-ai/repo-name nightly regression failed
+   Job: [failing job]
+   Root cause: [classification]
+   Action: fix branch opened
 ```
 
 ---

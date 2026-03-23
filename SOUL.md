@@ -548,6 +548,32 @@ jobs:
       - run: yarn test:contract
 ```
 
+### When to Add Service Containers
+
+Integration tests that need real databases require `services:` blocks on the integration job:
+
+```yaml
+  integration:
+    services:
+      mongodb:
+        image: mongo:7
+        ports: ["27017:27017"]
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      MONGODB_URI: mongodb://localhost:27017
+      MONGODB_DB: test_<service_name>
+      REDIS_URL: redis://localhost:6379/0
+      ENVIRONMENT: testing
+```
+
+**Rules:**
+- Only add to the `integration` job — unit tests must NEVER need real databases
+- Test DB name must NEVER be the production DB name (e.g., use `test_inbox_rotation`, not `sdr`)
+- Check the repo's existing integration setup before adding — not every repo needs services
+
 ### Adapt, Don't Invent
 
 When bootstrapping a new repo, copy the matching templates above and adapt only:
