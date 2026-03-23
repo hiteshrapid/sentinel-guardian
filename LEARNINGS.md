@@ -125,3 +125,16 @@
 - **TypeScript 6.x requires `@types/node` explicitly** — no longer implicit. Bootstrap new projects by checking TS version first; if >=6.0, ensure @types/node is in devDependencies or committed stubs exist.
 - **Always use `yarn audit` (not `npm audit`) for Yarn projects** — npm audit requires package-lock.json, which Yarn projects don't have.
 - **Disk usage on the VPS is at 95%** — avoid large package installs locally; rely on CI for heavy dependencies. Consider cleaning /home/hitesh/.cache/pypoetry and yarn cache regularly.
+
+## 2026-03-23 — Bootstrap: ruh-super-admin-fe — CI green (final)
+
+**What happened:** Took 4 CI attempts to get ruh-super-admin-fe PR #139 green.
+**Root cause chain:**
+1. npm audit → no package-lock.json (Yarn project) → use yarn audit
+2. TS 6.x baseUrl deprecation → add ignoreDeprecations:6.0
+3. TS 6.x CSS imports → add src/css.d.ts stub
+4. TS 6.x process/NodeJS.Timeout → @types/node needed → committed src/types/node-globals.d.ts minimal stub
+5. package-lock.json accidentally committed → yarn --frozen-lockfile rejected it
+6. eslint no-var rule hit declare var process in the stub → add eslint-disable-next-line
+
+**Learning:** For TS 6.x Next.js projects: always commit node-globals.d.ts stub + css.d.ts + ignoreDeprecations:6.0 as part of bootstrap. Add @types/node to devDependencies so it goes into yarn.lock. Never commit package-lock.json in a Yarn project.
