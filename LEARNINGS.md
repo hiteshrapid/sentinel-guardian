@@ -383,3 +383,13 @@ After any major module/client deletion: `grep -rn "skipif\|skip\|xfail" tests/` 
 **Learning:** For MCP servers, always extract tool names and parameter schemas from source before writing E2E tests. Tool names are not enum-like — they're freeform strings like "Creating or Updating a Campaign" and a single wrong character means the tool won't be found.
 
 **Also learned:** "Updating Campaign ICP" IS a registered tool — the previous E2E test asserting it was disabled was wrong. Always verify disabled/enabled status from source, not assumptions.
+
+## 2026-03-23 — Fix: sdr-backend nightly regression — empty string vs None
+
+**What happened:** Nightly regression failing 3+ nights. Smoke tests got `httpx.UnsupportedProtocol` because `SMOKE_BASE_URL` was empty string, not None.
+
+**Root cause:** GitHub Actions passes `""` (empty string) when a secret is unset, not `None`. So `os.environ.get("SMOKE_BASE_URL", "http://localhost:8000")` returns `""` — the default never kicks in.
+
+**Fix:** Use `(os.environ.get("KEY") or "default")` pattern. The `or` handles both `None` and `""`. Also added CI-aware skip logic and workflow conditional.
+
+**Learning:** ALWAYS use `or` instead of the `get()` default parameter when reading GitHub Actions secrets. `get(key, default)` only substitutes on `None`, not on empty string. This is a recurring trap with GitHub Actions secrets.
