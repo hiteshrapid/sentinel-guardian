@@ -70,8 +70,8 @@ npm audit --audit-level=high
 | Repo | Branch | Tier | Status |
 |------|--------|------|--------|
 | ruh-ai/sdr-backend | `dev` | P1 | ✅ Bootstrapped — 2821 tests, 100% cov. ❌ Nightly regression failing (smoke env vars) |
-| ruh-ai/inbox-rotation-service | `dev` | P1 | ✅ Bootstrapped — 2220 tests, 100% cov. PR #57 pending (CI fixes) |
-| ruh-ai/sdr-management-mcp | `dev` | P2 | ✅ Bootstrapped — 914 tests, 100% cov. PR #40 pending merge |
+| ruh-ai/inbox-rotation-service | `dev` | P1 | ✅ Bootstrapped — 2220 tests, 100% cov. PR #57 merged |
+| ruh-ai/sdr-management-mcp | `dev` | P2 | ✅ Bootstrapped — 914 tests, 100% cov. PR #40 merged (937+ tests, 3 workflows) |
 | ruh-ai/ruh-ai-admin-service | `dev` | P2 | 🔧 Bootstrap in progress — CI canonical branch exists |
 | ruh-ai/ruh-app-fe | `dev` | P1 | 🔲 Not started — deploy only, zero test CI |
 | ruh-ai/ruh-ai-api-gateway | `dev` | P1 | 🔲 Not started — deploy only, zero test CI |
