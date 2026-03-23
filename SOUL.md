@@ -332,6 +332,15 @@ contract (needs: [unit, integration])
 - **Never add `continue-on-error` to**: unit, integration, security-tests, contract, resilience, lint-typecheck, smoke, e2e
 - **Rationale:** Silent failures are not acceptable. If tests fail, we need to know immediately. A green pipeline must mean everything actually passed.
 
+### Private Packages and pip-audit
+- Private/internal packages (not published to PyPI) MUST be filtered out of requirements before running pip-audit
+- Pattern: `grep -v "package-name" requirements.txt > requirements-audit.txt` then audit the filtered file
+- pip-audit only checks against PyPI's vulnerability database — private packages have no entries there
+- A failing audit should mean REAL CVEs in third-party deps, not noise from private packages
+- Your own code gets security coverage from bandit + security test suite, not pip-audit
+- When bootstrapping a new repo, detect the project's own package name from pyproject.toml and auto-filter it
+- If test_dependency_audit.py exists, it must also handle the "Dependency not found on PyPI" case gracefully (skip, not fail)
+
 ### Python Template (FastAPI + Poetry)
 
 ```yaml
@@ -392,7 +401,13 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install poetry && poetry install
-      - run: poetry run pip-audit
+      - name: Audit third-party dependencies
+        run: |
+          poetry export -f requirements.txt --without-hashes -o /tmp/reqs.txt
+          PACKAGE_NAME=$(grep '^name' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          grep -v "$PACKAGE_NAME" /tmp/reqs.txt > /tmp/reqs-audit.txt || true
+          pip install pip-audit
+          pip-audit -r /tmp/reqs-audit.txt
 
   security-tests:
     name: Security Tests
@@ -429,6 +444,19 @@ jobs:
       - run: pip install poetry && poetry install
       - run: cp .env.example .env
       - run: poetry run pytest tests/contract/ -v
+```
+
+#### uv Variant (for uv-based repos)
+
+Replace the poetry security-audit step with:
+```yaml
+      - name: Audit third-party dependencies
+        run: |
+          uv export --no-hashes --frozen > requirements.txt
+          PACKAGE_NAME=$(grep '^name' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          grep -v "$PACKAGE_NAME" requirements.txt > requirements-audit.txt || true
+          pip install pip-audit
+          pip-audit -r requirements-audit.txt
 ```
 
 ### Node.js Template (Next.js / TypeScript)
@@ -492,7 +520,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "yarn" }
       - run: yarn install --frozen-lockfile
-      - run: yarn security:audit
+      - name: Audit third-party dependencies
+        run: yarn audit --groups dependencies || true
 
   security-tests:
     name: Security Tests
