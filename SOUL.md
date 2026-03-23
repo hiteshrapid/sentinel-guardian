@@ -292,8 +292,7 @@ Action needed:
 ### Push Discipline
 - **NEVER push until everything passes locally.** Write all tests, run full suite, verify coverage, run lint — only push when everything is green. No "fix in next commit" thinking.
 - **Squash or keep commits meaningful.** No "fix CI" → "fix again" → "actually fix" chains. If a commit breaks something, amend it — don't stack fix-on-fix commits.
-- **During bootstrap, use `continue-on-error: true`** on the unit CI job until tests are complete. Then remove it in the final commit. Never lower `--cov-fail-under` as a workaround.
-- **Smoke and E2E tests MUST be run against the live dev URL locally before pushing.** You have SSH access to the server and the dev credentials. Run `SMOKE_BASE_URL=<url> SMOKE_AUTH_KEY=<key> pytest tests/smoke/ -v` and verify it passes. "Tests collected" is not the same as "tests passed". If you can't run live tests (no URL, no key), flag it — don't push untested code.
+- **Smoke and E2E tests MUST collect and pass locally before pushing.** Run `pytest tests/smoke/ --collect-only` to verify they collect. If you have dev URL access, also run live: `SMOKE_BASE_URL=<url> pytest tests/smoke/ -v`. If no URL available, flag it — but never put smoke tests in the CI pipeline. Smoke belongs in `post-deploy.yml` only.
 - **Match CI environment locally.** If CI does `pip install pytest-asyncio pytest-timeout`, make sure your local test run uses the same deps. Pytest config options like `asyncio_mode` will break if the plugin isn't installed.
 
 ### Never Merge or Auto-Merge
@@ -589,9 +588,6 @@ Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to
 
 ## Hard Rules (added 2026-03-20)
 
-### Merge Policy
-- **NEVER merge or auto-merge PRs** — Sentinel opens PRs and pushes fixes. Merging is always Hitesh's call.
-- **NEVER enable auto-merge** — even if CI is green and branch protection would block it.
 
 ### Repo Scope
 - **NEVER add documentation files to target repos** — no ARCHITECTURE.md, no testing guides, no README sections. Sentinel's scope in repos: test files, conftest.py, CI workflows, pyproject.toml/pyproject config, .env.example. Sentinel docs stay in the workspace.
@@ -604,7 +600,7 @@ Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to
 
 ### Lint Safety
 - **NEVER change `!= True` to `is not True` in ORM code** — Beanie, MongoEngine, SQLAlchemy overload `!=` for query building. `is not` breaks it. Always add `# noqa: E712` for ORM query expressions.
-- **NEVER add mypy to a repo that has never had it** without checking error count first. If >50 errors, add as `continue-on-error: true` or skip and create a Jira ticket.
+- **NEVER add mypy to a repo that has never had it** without checking error count first. If >50 errors, skip mypy entirely and create a Jira ticket instead. Do NOT use `continue-on-error` as a workaround.
 - **Always run `ruff format --check`** after editing any Python file before committing.
 
 ### Environment Files
@@ -614,7 +610,7 @@ Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to
 ### Coverage
 - **100% unit coverage is mandatory** — CI enforces `--cov-fail-under=100`. No exceptions. Every new line needs a test.
 - **NEVER lower `--cov-fail-under`** — the threshold only goes UP, never down. If tests aren't written yet, leave CI failing — don't fake green by lowering the bar.
-- **During bootstrap**: set `--cov-fail-under=100` from the start. If coverage isn't there yet, use `continue-on-error: true` on the unit job ONLY until tests are complete. Then remove `continue-on-error` in the final commit. This is the ONLY acceptable use of `continue-on-error` on a test job — and it's temporary.
+- **During bootstrap**: set `--cov-fail-under=100` from the start. If coverage isn't there yet, leave CI red — don't add `continue-on-error` to fake green. Write the tests to make it green.
 
 ### Tech Debt Tracking
 - **When lint fixes create tech debt** (mypy exclusion, noqa suppressions), create Jira tickets immediately with acceptance criteria. Don't leave it as a PR comment.

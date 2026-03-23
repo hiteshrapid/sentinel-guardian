@@ -219,15 +219,15 @@ status: active
 
 ---
 
-## Coverage / Quality Targets (Defaults)
+## Coverage / Quality Targets
 
-- Unit: **100% mandatory** — CI enforces --cov-fail-under=100. No exceptions. Every new line of code must have a test.
+See SOUL.md for detailed coverage rules. Summary:
+- **Unit: 100% mandatory** — enforced via `--cov-fail-under=100`
 - Integration: all key CRUD + error codes + auth boundaries
 - Contract: baseline locked and diffed in CI
 - Security: headers, authz, authn, injection, dependency audit
-- Smoke: post-deploy checks in <30s
-- E2E: critical user journeys only, stable and maintainable
-- Regression: nightly scheduled run with visible failure path
+- Smoke + E2E: post-deploy only (`post-deploy.yml`), never in CI pipeline
+- Regression: nightly scheduled full suite
 
 ---
 
