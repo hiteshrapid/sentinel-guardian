@@ -151,3 +151,17 @@
 **What happened:** Team (AdityaRuh) pushed 3 commits adding 107 test methods after initial review flagged zero tests.
 **Action:** Posted re-review acknowledging P1s resolved, noting remaining P2s (unbounded DNS cache, no body size limits, missing .env.example defaults).
 **Learning:** Review feedback works — team delivered 107 tests from zero. Follow-up P2s tracked for next cycle.
+
+## 2026-03-23 — Heartbeat: sdr-management-mcp — Security audit fix (PR #43)
+
+**What happened:** pip-audit failed on PR #43 with 12 CVEs in 7 packages + private package skip warning.
+**Root cause:** Transitive dependencies not bumped (authlib, black, cryptography, filelock, urllib3, pyjwt, python-multipart), plus starlette and diskcache pinned by upstream (mcp==1.26.0, no fix version respectively).
+**Fix applied:** `uv lock --upgrade-package` for all fixable packages. Added `--ignore-vuln` for starlette (CVE-2025-62727) and diskcache (CVE-2025-69872) with documented reasons.
+**Learning:** When pip-audit fails on a uv project, use `uv lock --upgrade-package <pkg>` to bump transitive deps. Always check if upstream constraints block the fix before adding ignore flags.
+
+## 2026-03-23 — Heartbeat: inbox-rotation-service — Re-review PR #53
+
+**What happened:** Team addressed P1 finding (zero tests) by adding 107 test methods across 10 files. Lint fixes also pushed.
+**Root cause:** Initial PR had ~1200 lines of new code with no tests.
+**Fix applied:** (Team) Added comprehensive test coverage. CI now all green (6/6 jobs).
+**Learning:** P1 findings with concrete actionable items get addressed quickly. Team responded within same day.
