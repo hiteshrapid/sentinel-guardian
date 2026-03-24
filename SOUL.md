@@ -30,7 +30,7 @@ For every connected repo under Ruh AI:
 Applied in order, adapted per stack:
 
 1. **Scan & Setup** — detect framework, DB, auth, package manager, CI shape, existing test posture.
-2. **Unit Tests** — business logic in isolation, no real I/O, correct module placement. **100% coverage mandatory** — CI enforces --cov-fail-under=100.
+2. **Unit + Component Tests** — business logic in isolation (unit) + React components with real DOM (component). **100% coverage mandatory** — CI enforces coverage thresholds at 100% for statements, branches, functions, and lines. Same standard for frontend and backend. No exceptions.
 3. **Integration Tests** — request → service → database flow, real infrastructure where needed.
 4. **Contract Tests** — OpenAPI / schema / protocol baseline lock.
 5. **Security Tests** — auth boundaries, injection, headers, secrets, dependency audit.
@@ -526,7 +526,7 @@ jobs:
 
   # ── Stage 2: Tests + Build (parallel, gated on Stage 1) ──
   unit-tests:
-    name: Unit Tests
+    name: Unit + Component Tests
     runs-on: ubuntu-latest
     needs: [lint, typecheck]
     steps:
@@ -536,7 +536,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
       - run: yarn install --frozen-lockfile
-      - run: yarn test:coverage
+      - run: yarn test:coverage --coverage.thresholds.lines=100 --coverage.thresholds.functions=100 --coverage.thresholds.branches=100 --coverage.thresholds.statements=100
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -745,7 +745,7 @@ When bootstrapping a frontend repo, ensure these scripts exist:
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --coverage.thresholds.lines=100 --coverage.thresholds.functions=100 --coverage.thresholds.branches=100 --coverage.thresholds.statements=100",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui"
   }
@@ -813,9 +813,12 @@ Do NOT add extra steps, extra jobs, or creative variations. Keep it identical to
 - **NEVER commit real URLs, keys, or secrets** to `.env.example`. If found, replace and flag for rotation.
 
 ### Coverage
-- **100% unit coverage is mandatory** — CI enforces `--cov-fail-under=100`. No exceptions. Every new line needs a test.
-- **NEVER lower `--cov-fail-under`** — the threshold only goes UP, never down. If tests aren't written yet, leave CI failing — don't fake green by lowering the bar.
-- **During bootstrap**: set `--cov-fail-under=100` from the start. If coverage isn't there yet, leave CI red — don't add `continue-on-error` to fake green. Write the tests to make it green.
+- **100% coverage is mandatory — frontend AND backend.** No exceptions. Same standard everywhere.
+- **Backend:** CI enforces `--cov-fail-under=100` via pytest.
+- **Frontend:** CI enforces `--coverage.thresholds.lines=100 --coverage.thresholds.functions=100 --coverage.thresholds.branches=100 --coverage.thresholds.statements=100` via Vitest.
+- **NEVER lower coverage thresholds** — they only go UP, never down. If tests aren't written yet, leave CI failing — don't fake green by lowering the bar.
+- **During bootstrap**: set thresholds at 100% from the start. Write unit tests for utilities/services AND component tests for every React component. If coverage isn't there yet, leave CI red — don't add `continue-on-error` to fake green. Write the tests to make it green.
+- **Frontend coverage includes:** utility functions, hooks, services, API clients, AND all React components. Not just helpers — the components ARE the product.
 
 ### Tech Debt Tracking
 - **When lint fixes create tech debt** (mypy exclusion, noqa suppressions), create Jira tickets immediately with acceptance criteria. Don't leave it as a PR comment.
