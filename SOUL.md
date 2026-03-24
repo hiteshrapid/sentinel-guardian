@@ -460,56 +460,221 @@ Replace the poetry security-audit step with:
 
 ### Node.js Template (Next.js / TypeScript)
 
+Frontend repos get a more comprehensive pipeline than backend because they have unique concerns:
+build verification, bundle size, Lighthouse performance, accessibility, and local E2E.
+
+#### Job Dependency Graph (Frontend)
+
+```
+lint ─────┐
+           ├──→ unit-tests ──────────────────→ ✅
+typecheck ─┤                    ┌→ e2e-local ──→ ✅
+           └──→ build ──────────┼→ lighthouse ──→ ✅
+                                └→ bundle-size ─→ ✅
+security-audit ─────────────────────────────────→ ⚠️ (non-blocking)
+```
+
+Key differences from backend:
+- **Lint and typecheck are separate parallel jobs** (faster feedback)
+- **Build is a standalone job** producing an artifact reused by E2E, Lighthouse, and bundle-size
+- **E2E runs against local build** in PR CI (not just post-deploy) — catches issues before merge
+- **Lighthouse and bundle size** run in parallel using the same build artifact
+- **No resilience/contract/integration jobs** — those are backend concepts
+
 ```yaml
 name: CI
+
 on:
   pull_request:
+    branches: [dev, qa, main]
   push:
-    branches: [main, dev, qa]
+    branches: [dev]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
 
 jobs:
-  lint-typecheck:
-    name: Lint + Type Check
+  # ── Stage 1: Fast gates (parallel) ──────────────
+  lint:
+    name: Lint + Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
       - run: yarn install --frozen-lockfile
-      - run: npx tsc --noEmit
+      - run: yarn lint
+      - run: yarn format:check
 
-  unit:
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn typecheck
+
+  # ── Stage 2: Tests + Build (parallel, gated on Stage 1) ──
+  unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    needs: lint-typecheck
+    needs: [lint, typecheck]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
-      - run: yarn install --frozen-lockfile
-      - run: cp .env.example .env
-      - run: yarn test:unit:coverage
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
           path: coverage/
+          retention-days: 14
 
-  integration:
-    name: Integration Tests
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    needs: lint-typecheck
+    needs: [lint, typecheck]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
       - run: yarn install --frozen-lockfile
-      - run: cp .env.example .env
-      - run: yarn test:integration
-      env:
-        TESTCONTAINERS_RYUK_DISABLED: "true"
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-
+            nextjs-${{ runner.os }}-
+      - run: yarn build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          retention-days: 1
 
+  # ── Stage 3: E2E + Performance (parallel, gated on build) ──
+  e2e-local:
+    name: E2E Tests (Local)
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        run: yarn test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
+
+  lighthouse:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+      - name: Start server
+        run: yarn start &
+        env:
+          PORT: 3000
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 30000
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            http://localhost:3000/login
+            http://localhost:3000/
+          budgetPath: ./lighthouse-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+      - name: Analyze bundle
+        run: |
+          echo "## 📦 Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          find .next -name '*.js' -path '*chunks*' | head -20 | while read f; do
+            SIZE=$(stat --printf="%s" "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null)
+            SIZE_KB=$((SIZE / 1024))
+            echo "$(basename $f): ${SIZE_KB}KB"
+          done | sort -t: -k2 -rn >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          LARGE=$(find .next -name '*.js' -path '*chunks*' -size +500k | wc -l)
+          if [ "$LARGE" -gt 0 ]; then
+            echo "❌ $LARGE chunks exceed 500KB" | tee -a $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "✅ All chunks under 500KB" >> $GITHUB_STEP_SUMMARY
+
+  # ── Security (non-blocking, parallel with everything) ──
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -517,34 +682,74 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
       - run: yarn install --frozen-lockfile
-      - name: Audit third-party dependencies
-        run: yarn audit --groups dependencies || true
+      - run: yarn audit --groups dependencies --level critical
+```
 
-  security-tests:
-    name: Security Tests
-    runs-on: ubuntu-latest
-    needs: lint-typecheck
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
-      - run: yarn install --frozen-lockfile
-      - run: cp .env.example .env
-      - run: yarn test:security
+#### Frontend-Specific: Playwright Config Requirements
 
-  contract:
-    name: Contract Tests
-    runs-on: ubuntu-latest
-    needs: [unit, integration]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
-      - run: yarn install --frozen-lockfile
-      - run: cp .env.example .env
-      - run: yarn test:contract
+For local E2E to work in CI, `playwright.config.ts` MUST include a `webServer` block that starts the built app:
+
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  // ... existing config ...
+  webServer: {
+    command: 'yarn start',            // next start (uses .next/ build artifact)
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
+  },
+});
+```
+
+This is what makes the E2E-local job work — Playwright starts `next start`, runs tests against localhost, and shuts down when done.
+
+#### Frontend-Specific: lighthouse-budget.json
+
+Add to repo root:
+
+```json
+[
+  {
+    "path": "/*",
+    "timings": [
+      { "metric": "first-contentful-paint", "budget": 2000 },
+      { "metric": "interactive", "budget": 5000 },
+      { "metric": "largest-contentful-paint", "budget": 3000 }
+    ],
+    "resourceSizes": [
+      { "resourceType": "script", "budget": 500 },
+      { "resourceType": "total", "budget": 1500 }
+    ]
+  }
+]
+```
+
+#### Frontend-Specific: Required package.json Scripts
+
+When bootstrapping a frontend repo, ensure these scripts exist:
+
+```json
+{
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui"
+  }
+}
 ```
 
 ### When to Add Service Containers
@@ -639,23 +844,26 @@ Before `post-deploy.yml` and `regression.yml` smoke/E2E jobs work, these must be
 - `SLACK_BOT_TOKEN` — Slack bot token for failure alerts
 - `SLACK_ALERTS_CHANNEL` — Slack channel ID for failure alerts
 
-### Node.js Post-Deploy Template
+### Node.js Post-Deploy Template (Frontend)
+
+Frontend post-deploy includes smoke (HTTP reachability) AND full Playwright E2E against the deployed environment.
+This catches environment-specific issues (env vars, API connectivity, CORS, CDN) that local E2E can't.
 
 ```yaml
-# Runs after "Build and Deploy Application" completes on dev.
+# Runs after "Build and Deploy to Cloud Run" completes on dev.
 # Executes smoke + E2E tests against the deployed dev environment.
-# Extend to qa + main when their variables/secrets are configured.
 #
 # ── GitHub Repository Variables (Settings > Variables > Actions) ──────
-# DEV_URL        — https://service-name.rapidinnovation.dev
+# DEV_URL        — https://super-admin.example.com (deployed URL)
 #
 # ── GitHub Repository Secrets (Settings > Secrets > Actions) ──────────
-# DEV_API_KEY    — API key for dev environment
+# E2E_ADMIN_EMAIL    — Admin email for E2E auth
+# E2E_ADMIN_PASSWORD — Admin password for E2E auth
 name: Post-Deploy Tests
 
 on:
   workflow_run:
-    workflows: ["Build and Deploy Application"]
+    workflows: ["Build and Deploy to Cloud Run"]
     types: [completed]
     branches: [dev]
 
@@ -667,27 +875,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: dev }
-      - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
-      - run: yarn install --frozen-lockfile
       - name: Wait for service ready
         run: |
           for i in $(seq 1 24); do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.DEV_URL }}/health" || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.DEV_URL }}" || echo "000")
             echo "Attempt $i: $STATUS"
             [ "$STATUS" = "200" ] && echo "Ready" && exit 0
             sleep 5
           done
           echo "Service not ready after 2 minutes" && exit 1
-      - name: Run smoke tests
-        run: yarn test:smoke
-        timeout-minutes: 2
-        env:
-          SMOKE_BASE_URL: ${{ vars.DEV_URL }}
-          SMOKE_AUTH_TOKEN: ${{ secrets.DEV_API_KEY }}
 
   e2e:
-    name: E2E Journey Tests (dev)
+    name: E2E Tests (dev)
     runs-on: ubuntu-latest
     needs: smoke
     steps:
@@ -696,12 +895,24 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "yarn" }
       - run: yarn install --frozen-lockfile
-      - name: Run E2E journey tests
+      - run: npx playwright install --with-deps chromium
+      - name: Run E2E tests
         run: yarn test:e2e
         timeout-minutes: 10
         env:
           E2E_BASE_URL: ${{ vars.DEV_URL }}
-          E2E_API_KEY: ${{ secrets.DEV_API_KEY }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
 ```
 
 ### Python Post-Deploy Template
@@ -781,3 +992,473 @@ jobs:
 6. **Smoke tests must be fast** — timeout 2 minutes. If smoke takes longer, it's doing too much.
 7. **E2E tests get more time** — timeout 10 minutes, but should target <5 min in practice.
 8. **Regression also runs smoke + E2E** — the nightly regression workflow must include smoke and E2E jobs against the deployed environment, in addition to the offline test suite.
+### Node.js Nightly Regression Template (Frontend)
+
+Frontend nightly regression runs everything: unit tests, local E2E, deployed E2E, Lighthouse, and accessibility.
+Two E2E jobs serve different purposes:
+- **e2e-local**: catches code drift (flaky tests, dependency updates)
+- **e2e-deployed**: catches environment drift (API changes, env var mismatches, infra issues)
+
+```yaml
+name: Nightly Regression
+
+on:
+  schedule:
+    - cron: "30 20 * * *"  # 2:00 AM IST (20:30 UTC)
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Full Unit Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: dev }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: yarn test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-coverage
+          path: coverage/
+          retention-days: 30
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: dev }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nightly-build
+          path: .next/
+          retention-days: 1
+
+  e2e-local:
+    name: E2E (Local Build)
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: dev }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: nightly-build
+          path: .next/
+      - run: npx playwright install --with-deps chromium
+      - name: Run E2E
+        run: yarn test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-local-playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  e2e-deployed:
+    name: E2E (Deployed Dev)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: dev }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+      - name: Run E2E against deployed dev
+        run: yarn test:e2e
+        env:
+          E2E_BASE_URL: ${{ vars.DEV_URL }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-deployed-playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  lighthouse:
+    name: Lighthouse Audit (Deployed Dev)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: dev }
+      - name: Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            ${{ vars.DEV_URL }}/login
+            ${{ vars.DEV_URL }}/
+          budgetPath: ./lighthouse-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  accessibility:
+    name: Accessibility Audit
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: dev }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: nightly-build
+          path: .next/
+      - run: npx playwright install --with-deps chromium
+      - name: Run accessibility audit
+        run: |
+          yarn start &
+          npx wait-on http://localhost:3000 --timeout 30000
+          npx @axe-core/cli http://localhost:3000/login --exit
+```
+
+
+### Stack Auto-Detection for Frontend vs Backend
+
+When bootstrapping a new repo, Sentinel MUST detect the stack before applying templates:
+
+```bash
+# Detection logic
+if [ -f "package.json" ] && grep -q '"next"' package.json; then
+  STACK="nextjs"
+  # Apply Node.js Frontend templates (ci.yml, post-deploy.yml, nightly-regression.yml)
+  # Include: Lighthouse, bundle size, local E2E, accessibility
+elif [ -f "package.json" ]; then
+  STACK="nodejs"
+  # Apply Node.js Backend templates
+elif [ -f "pyproject.toml" ] || [ -f "requirements.txt" ]; then
+  STACK="python"
+  # Apply Python Backend templates
+fi
+```
+
+**Frontend indicators:** `next.config.ts`, `next.config.mjs`, `playwright.config.ts`, `src/app/` directory (Next.js App Router), `src/pages/` (Pages Router)
+
+**Frontend-only CI jobs (do NOT add to backend):**
+- `build` (standalone job producing artifact)
+- `e2e-local` (Playwright against local `next start`)
+- `lighthouse` (performance budgets)
+- `bundle-size` (chunk size regression)
+- `accessibility` (axe-core, nightly only)
+
+**Backend-only CI jobs (do NOT add to frontend):**
+- `integration` (with service containers)
+- `resilience` (timeout/circuit breaker tests)
+- `contract` (OpenAPI schema diff)
+
+**Shared across both:**
+- `lint` / `lint-typecheck`
+- `unit-tests` / `unit`
+- `security-audit`
+- `post-deploy` (smoke + E2E)
+- `nightly-regression`
+
+### Frontend Canonical Workflows — Summary
+
+Every frontend repo Sentinel bootstraps gets FOUR workflow files:
+
+| File | Trigger | Jobs |
+|------|---------|------|
+| `ci.yml` | PR + push to dev | lint, typecheck, unit-tests, build, e2e-local, lighthouse, bundle-size, security-audit |
+| `main.yml` | push to dev/qa/main | Build + Deploy to Cloud Run (already exists, DO NOT modify) |
+| `post-deploy.yml` | After successful deploy | smoke → E2E against deployed env |
+| `nightly-regression.yml` | Cron 2 AM IST + manual | unit-tests, build, e2e-local, e2e-deployed, lighthouse, accessibility |
+
+**`main.yml` is the deploy workflow — Sentinel MUST NOT modify it.** It uses Ruh AI's reusable workflows. Only add/update `ci.yml`, `post-deploy.yml`, and `nightly-regression.yml`.
+
+
+### Frontend Component Testing Layer
+
+Component tests are the missing middle layer between unit tests and E2E for frontend repos. They render real React components with real DOM, real user interactions, and real state — but without the full app, routing, or backend.
+
+#### Why Component Tests Matter
+
+| Layer | What it tests | Speed | Isolation |
+|-------|--------------|-------|-----------|
+| Unit | Pure functions, hooks, utilities | ~1ms/test | Full |
+| **Component** | **Rendered UI, interactions, conditional states** | **~50-100ms/test** | **Component-level** |
+| E2E | Full user journeys in real browser | ~5-30s/test | None |
+
+Component tests run 100-500x faster than E2E. For a repo with 90+ components, that's the difference between 2 seconds and 10 minutes.
+
+#### What to Component-Test (Priority Order)
+
+1. **Forms** — validation states, submit/disable logic, multi-step wizards, error display
+2. **Data display** — tables with sort/filter/pagination, empty states, loading skeletons
+3. **Interactive UI** — modals, drawers, dropdowns, accordions, tabs, tooltips
+4. **Conditional rendering** — role-based UI, feature flags, error/empty/loading states
+5. **Complex components** — anything over 200 lines with multiple internal states
+
+#### What NOT to Component-Test
+
+- Pure utility functions → unit tests
+- Full user journeys across pages → E2E
+- API integration → E2E or integration tests
+- Visual pixel-perfect layout → Lighthouse or visual regression
+
+#### Stack (already installed via Vitest bootstrap)
+
+- **Vitest** — test runner
+- **@testing-library/react** — render components, query DOM
+- **@testing-library/user-event** — simulate real user interactions
+- **jsdom** — fake browser DOM environment
+
+No extra dependencies needed. Component tests use the same `yarn test:coverage` command as unit tests.
+
+#### File Structure
+
+```
+tests/
+├── unit/                    <- pure logic tests (existing)
+│   ├── utils/
+│   └── services/
+└── components/              <- component rendering tests (NEW)
+    ├── auth/
+    │   └── LoginForm.test.tsx
+    ├── common/
+    │   └── DataTable.test.tsx
+    ├── modals/
+    │   └── AddAgentModal.test.tsx
+    └── layouts/
+        └── SettingsSidebar.test.tsx
+```
+
+**Naming:** `{ComponentName}.test.tsx` — mirrors the source structure under `tests/components/`.
+
+#### Patterns
+
+**Pattern A — Props and Conditional Rendering:**
+```tsx
+import { render, screen } from '@testing-library/react';
+import { UserCard } from '@/components/users/UserCard';
+
+describe('UserCard', () => {
+  it('renders user name and role', () => {
+    render(<UserCard user={{ name: 'Hitesh', role: 'admin' }} />);
+    expect(screen.getByText('Hitesh')).toBeInTheDocument();
+    expect(screen.getByText('admin')).toBeInTheDocument();
+  });
+
+  it('shows delete button only for superadmin', () => {
+    const { rerender } = render(<UserCard user={mockUser} isSuperAdmin={false} />);
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+
+    rerender(<UserCard user={mockUser} isSuperAdmin={true} />);
+    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+  });
+
+  it('renders loading skeleton when loading', () => {
+    render(<UserCard loading={true} />);
+    expect(screen.getByTestId('user-card-skeleton')).toBeInTheDocument();
+  });
+
+  it('renders empty state when user is null', () => {
+    render(<UserCard user={null} />);
+    expect(screen.getByText(/no user/i)).toBeInTheDocument();
+  });
+});
+```
+
+**Pattern B — User Interactions:**
+```tsx
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { LoginForm } from '@/components/auth/LoginForm';
+
+describe('LoginForm', () => {
+  it('disables submit when fields are empty', () => {
+    render(<LoginForm onSubmit={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeDisabled();
+  });
+
+  it('calls onSubmit with credentials when form is valid', async () => {
+    const onSubmit = vi.fn();
+    render(<LoginForm onSubmit={onSubmit} />);
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'test@ruh.ai');
+    await userEvent.type(screen.getByLabelText(/password/i), 'password123');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: 'test@ruh.ai',
+      password: 'password123',
+    });
+  });
+
+  it('shows error message when error prop is set', () => {
+    render(<LoginForm onSubmit={vi.fn()} error="Invalid credentials" />);
+    expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+  });
+
+  it('toggles password visibility', async () => {
+    render(<LoginForm onSubmit={vi.fn()} />);
+    const passwordInput = screen.getByLabelText(/password/i);
+    expect(passwordInput).toHaveAttribute('type', 'password');
+
+    await userEvent.click(screen.getByTestId('toggle-password'));
+    expect(passwordInput).toHaveAttribute('type', 'text');
+  });
+});
+```
+
+**Pattern C — Data Tables (sort, filter, pagination):**
+```tsx
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { DataTable } from '@/components/common/DataTable';
+
+const mockData = [
+  { id: 1, name: 'Alice', role: 'admin' },
+  { id: 2, name: 'Bob', role: 'user' },
+  { id: 3, name: 'Charlie', role: 'admin' },
+];
+
+describe('DataTable', () => {
+  it('renders all rows', () => {
+    render(<DataTable data={mockData} columns={columns} />);
+    expect(screen.getAllByRole('row')).toHaveLength(4); // header + 3 data rows
+  });
+
+  it('sorts by column when header is clicked', async () => {
+    render(<DataTable data={mockData} columns={columns} />);
+    await userEvent.click(screen.getByText('Name'));
+    const rows = screen.getAllByRole('row');
+    expect(within(rows[1]).getByText('Alice')).toBeInTheDocument();
+  });
+
+  it('filters data when search input changes', async () => {
+    render(<DataTable data={mockData} columns={columns} searchable />);
+    await userEvent.type(screen.getByPlaceholderText(/search/i), 'Alice');
+    expect(screen.getAllByRole('row')).toHaveLength(2); // header + 1 match
+  });
+
+  it('shows empty state when no data', () => {
+    render(<DataTable data={[]} columns={columns} />);
+    expect(screen.getByText(/no results/i)).toBeInTheDocument();
+  });
+});
+```
+
+**Pattern D — Modals and Drawers:**
+```tsx
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+
+describe('ConfirmDialog', () => {
+  it('renders nothing when closed', () => {
+    render(<ConfirmDialog open={false} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('renders dialog when open', () => {
+    render(<ConfirmDialog open={true} title="Delete user?" onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Delete user?')).toBeInTheDocument();
+  });
+
+  it('calls onConfirm when confirm button clicked', async () => {
+    const onConfirm = vi.fn();
+    render(<ConfirmDialog open={true} onConfirm={onConfirm} onCancel={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /confirm/i }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+  });
+
+  it('calls onCancel when cancel button clicked', async () => {
+    const onCancel = vi.fn();
+    render(<ConfirmDialog open={true} onConfirm={vi.fn()} onCancel={onCancel} />);
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+});
+```
+
+#### Mocking Patterns for Component Tests
+
+**Mock Next.js router:**
+```tsx
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/dashboard',
+  useSearchParams: () => new URLSearchParams(),
+}));
+```
+
+**Mock API hooks (React Query / SWR):**
+```tsx
+// Don't mock fetch — mock the hook
+vi.mock('@/hooks/useUsers', () => ({
+  useUsers: () => ({
+    data: mockUsers,
+    isLoading: false,
+    error: null,
+  }),
+}));
+```
+
+**Mock context providers:**
+```tsx
+const renderWithAuth = (ui: React.ReactElement, { user = mockUser } = {}) => {
+  return render(
+    <AuthContext.Provider value={{ user, isAuthenticated: true }}>
+      {ui}
+    </AuthContext.Provider>
+  );
+};
+```
+
+#### Rules
+
+1. **Test behavior, not implementation** — test what the user sees and does, not internal state
+2. **Use `screen` queries, not container** — `screen.getByText()` not `container.querySelector()`
+3. **Prefer accessible queries** — `getByRole`, `getByLabelText`, `getByText` over `getByTestId`
+4. **Use `userEvent` over `fireEvent`** — `userEvent` simulates real user behavior (focus, typing, etc.)
+5. **Mock at the boundary** — mock API hooks/context, not internal component methods
+6. **One component per test file** — `LoginForm.test.tsx` tests only `LoginForm`
+7. **Cover all visual states** — loading, error, empty, success, disabled, responsive
+8. **No `act()` warnings** — if you see them, you're missing an `await` or `waitFor`
+
+#### CI Integration
+
+Component tests run in the same `unit-tests` job — no separate CI job needed:
+
+```yaml
+  unit-tests:
+    name: Unit + Component Tests
+    # ... same as before, yarn test:coverage runs both unit/ and components/
+```
+
+Vitest config should include both directories:
+```typescript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    include: ['tests/unit/**/*.test.ts', 'tests/components/**/*.test.tsx'],
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+  },
+});
+```
+

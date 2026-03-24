@@ -9,8 +9,9 @@ Sentinel is an AI-powered testing agent built on [OpenClaw](https://openclaw.com
 - **4,000+ tests** generated across production repositories
 - **100% unit test coverage** achieved and enforced autonomously
 - **71 targeted tests** written in a single PR review cycle to fill coverage gaps
-- **9-layer testing pyramid** — unit → integration → contract → security → resilience → smoke → API E2E → browser E2E → regression
-- **5 stack contexts** — FastAPI/Beanie, FastAPI/SQLAlchemy, Flask, Django, Next.js/Prisma
+- **10-layer testing pyramid** — unit → component → integration → contract → security → resilience → smoke → API E2E → browser E2E → regression
+- **5 stack contexts** — FastAPI/Beanie, FastAPI/SQLAlchemy, Flask, Django, Next.js/TypeScript
+- **Frontend-aware** — Lighthouse performance budgets, bundle size checks, component tests, local E2E in PR CI
 - **3 canonical CI workflows** bootstrapped per repo — `ci.yml`, `post-deploy.yml`, `regression.yml`
 
 ## Two Modes of Operation
@@ -29,6 +30,19 @@ Build the entire quality system from scratch on a new or under-tested repo.
 - Post-deploy workflow (`post-deploy.yml`) — smoke + E2E against live environment
 - Nightly regression workflow (`regression.yml`) with Slack failure alerts
 - 100% unit coverage enforced via `--cov-fail-under=100`
+
+**For backend repos:**
+- Unit → Integration → Contract → Security → Resilience pipeline
+- Service containers (MongoDB, Redis) for integration tests
+- 100% unit coverage enforced
+
+**For frontend repos (Next.js):**
+- Lint + Typecheck → Unit + Component → Build → E2E local + Lighthouse + Bundle size
+- Component tests for forms, modals, tables, conditional rendering
+- Playwright E2E against local `next start` (webServer config)
+- Lighthouse performance budgets (`lighthouse-budget.json`)
+- Bundle size regression checks (500KB per-chunk limit)
+- Accessibility audits via axe-core (nightly)
 
 **Output:** One PR with everything. Clean, tested, ready to merge.
 
@@ -70,6 +84,7 @@ Observations:
 | Layer | What It Tests | When |
 |-------|--------------|------|
 | **Unit** | Business logic in isolation, 100% coverage mandatory | Every PR |
+| **Component** | React components rendered with real DOM, user interactions, state changes | Every PR (frontend) |
 | **Integration** | HTTP → service → database flow with real infra | Every PR |
 | **Contract** | OpenAPI/schema regression lock | Every PR |
 | **Security** | Auth boundaries, injection, headers, dependency audit | Every PR |
@@ -107,6 +122,33 @@ unit  integration  security-tests
 contract (needs: [unit, integration])
 ```
 
+### Frontend CI Architecture (Next.js / TypeScript)
+
+Frontend repos get a different, broader pipeline — no integration/contract/resilience, but adds build verification, local E2E, Lighthouse performance audits, and bundle size checks.
+
+```
+ci.yml (PR + push)              post-deploy.yml (after deploy)     nightly-regression.yml (2 AM IST)
+─────────────────               ──────────────────────────          ────────────────────────────────
+lint ─────┐                     Deploy succeeds                    Cron schedule
+           ├─ unit+component    │                                  │
+typecheck ─┤                    ├── smoke (curl health)            ├── unit+component
+           └─ build ──┐        └── e2e (Playwright vs deployed)   ├── build
+              ├─ e2e-local                                         ├── e2e-local (vs local build)
+              ├─ lighthouse                                        ├── e2e-deployed (vs live dev)
+              └─ bundle-size                                       ├── lighthouse (vs live dev)
+security-audit (parallel)                                          └── accessibility (axe-core)
+```
+
+**Frontend-specific jobs (not in backend):**
+- **build** — `next build` producing artifact reused by downstream jobs
+- **e2e-local** — Playwright tests against `next start` on localhost (catches issues before merge)
+- **lighthouse** — performance budgets (FCP, LCP, TTI, bundle sizes)
+- **bundle-size** — fails if any JS chunk exceeds 500KB
+- **component tests** — React components rendered with Testing Library (runs alongside unit tests)
+- **accessibility** — axe-core audit (nightly only)
+
+**Key difference from backend:** E2E runs locally in PR CI, not just post-deploy. This ensures tests actually catch issues before merge, not after.
+
 ## Supported Stacks
 
 | Stack | Auto-detected via |
@@ -115,7 +157,7 @@ contract (needs: [unit, integration])
 | FastAPI + PostgreSQL/SQLAlchemy | `from fastapi` + `sqlalchemy` imports |
 | Flask + SQLAlchemy | `from flask` imports |
 | Django + Django ORM | `from django` imports |
-| Next.js + Prisma | `package.json` with `next` + `prisma` |
+| Next.js + TypeScript | `package.json` with `next` + `next.config.ts`/`mjs` |
 
 New stacks? Sentinel analyzes the repo and creates a context automatically.
 
@@ -168,6 +210,7 @@ Sentinel spawns specialized sub-agents for each testing layer:
 | **E2E** | Browser-critical Playwright flows |
 | **Regression** | Nightly CI wiring + failure triage |
 | **Review** | Post-write quality gate (dedup, mock audit, DB safety) |
+| **Component** | Frontend component tests (React Testing Library + Vitest) |
 | **PR Review** | Team PR guardian (coverage, security, patterns) |
 | **Verifier** | Final pass — validate everything is green |
 

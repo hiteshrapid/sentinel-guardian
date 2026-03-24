@@ -60,7 +60,7 @@ sentinel-guardian/
 │       ├── fastapi-sqlalchemy.md
 │       ├── flask-sqlalchemy.md
 │       ├── django-orm.md
-│       └── nextjs-prisma.md
+│       └── nextjs-typescript.md
 │
 ├── agents/              Sub-agent definitions
 │   ├── analyzer.md      Stack detection + test planning
@@ -104,17 +104,31 @@ sentinel-guardian/
 ### Stack Contexts
 Skills are generic. Contexts make them specific. When Sentinel encounters a FastAPI + MongoDB repo, it loads `contexts/fastapi-beanie.md` which tells it the auth pattern, DB setup, package manager, and code examples for that stack.
 
+### Stack Auto-Detection (Frontend vs Backend)
+
+Sentinel auto-detects the stack before applying templates:
+
+| Signal | Stack | CI Template |
+|--------|-------|-------------|
+| `package.json` + `next` | Next.js (frontend) | lint, typecheck, unit+component, build, e2e-local, lighthouse, bundle-size |
+| `pyproject.toml` / `requirements.txt` | Python (backend) | lint-typecheck, unit, integration, security, resilience, contract |
+
+**Frontend-only jobs:** build (artifact), e2e-local (Playwright vs localhost), lighthouse (performance), bundle-size, component tests, accessibility (nightly)
+
+**Backend-only jobs:** integration (service containers), resilience, contract (OpenAPI schema)
+
 ### The Testing Pyramid
 Sentinel implements a 9-layer testing pyramid, executed in order:
 1. Setup (bootstrap infrastructure)
 2. Unit tests (business logic, mocked I/O)
-3. Integration tests (real DB via Testcontainers)
-4. Contract tests (OpenAPI schema lock)
-5. Security tests (auth, injection, headers)
-6. Smoke tests (post-deploy health)
-7. API E2E tests (multi-step workflows)
-8. Browser E2E tests (Playwright UI flows)
-9. Regression tests (nightly scheduled runs)
+3. Component tests (frontend only — React components with real DOM via Testing Library)
+4. Integration tests (real DB via Testcontainers, backend only)
+5. Contract tests (OpenAPI schema lock, backend only)
+6. Security tests (auth, injection, headers)
+7. Smoke tests (post-deploy health)
+8. API E2E tests (multi-step workflows, backend only)
+9. Browser E2E tests (Playwright UI flows)
+10. Regression tests (nightly scheduled runs)
 
 ### Heartbeat
 Sentinel monitors connected repos autonomously. Every heartbeat it checks PRs, CI status, nightly regressions, and coverage. If something needs fixing, it acts. After every action, it writes what it learned to LEARNINGS.md.

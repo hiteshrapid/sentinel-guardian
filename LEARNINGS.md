@@ -165,3 +165,80 @@
 **Root cause:** Initial PR had ~1200 lines of new code with no tests.
 **Fix applied:** (Team) Added comprehensive test coverage. CI now all green (6/6 jobs).
 **Learning:** P1 findings with concrete actionable items get addressed quickly. Team responded within same day.
+
+## 2026-03-24 — Heartbeat: sdr-backend + sdr-management-mcp — Team PR reviews (SDR-1248)
+
+**What happened:** Two companion PRs from JeetanshuDev for SDR-1248 (delayed reply check). Backend PR #447 has 72 tests but fails lint (ruff format). MCP PR #44 has zero tests and fails lint (undefined `Dict`) + security audit (11 CVEs in deps).
+**Root cause:** (1) Developer didn't run `ruff format .` before pushing. (2) Used `Dict` instead of `dict` in MCP client. (3) MCP repo has stale dependencies with known CVEs. (4) No tests written for MCP side.
+**Fix applied:** Posted Sentinel review comments on both PRs with clear P1/P2/P3 findings and fix instructions.
+**Learning:** SDR-1248 spans two repos — always check companion PRs together. The MCP repo's dependency CVEs may be a systemic issue that needs a separate dependency bump PR.
+
+## 2026-03-24 — Heartbeat: sdr-backend — Nightly regression failure (smoke)
+
+**What happened:** Nightly regression smoke tests failed with `httpx.UnsupportedProtocol: Request URL is missing an 'http://' or 'https://' protocol`.
+**Root cause:** `STAGING_URL` GitHub Actions variable is empty/not configured. Smoke tests try to hit an empty URL. This is the same known issue from HEARTBEAT.md — PR #446 was opened to skip smoke when STAGING_URL is not set.
+**Fix applied:** PR #446 (by hiteshrapid) already addresses this — CI green, awaiting merge.
+**Learning:** Smoke tests in nightly regression must gracefully skip when env vars are missing. PR #446 is the fix — needs to be merged to resolve recurring nightly failures.
+
+## 2026-03-24 — Heartbeat: sdr-management-mcp — Nightly regression failure (smoke)
+
+**What happened:** Nightly regression smoke tests failed with `pytest: error: unrecognized arguments: --timeout=30`.
+**Root cause:** `pytest-timeout` not installed in the nightly regression workflow's dependency set. The `--extra dev` group doesn't include `pytest-timeout`. PR #43 (by hiteshrapid) was opened to fix this — CI green, awaiting merge.
+**Fix applied:** PR #43 already addresses this — needs to be merged.
+**Learning:** Nightly regression workflows must install the same test dependencies as CI. If smoke tests use `--timeout`, `pytest-timeout` must be in the dependency group.
+
+## 2026-03-24 — Heartbeat: sdr-backend #447 + sdr-management-mcp #44 — Re-review after fixes
+
+**What happened:** JeetanshuDev responded to Sentinel review within ~15 min, fixing all P1s on both companion PRs (lint formatting, undefined Dict, added tests).
+**Root cause:** N/A — normal review-fix cycle.
+**Fix applied:** Re-reviewed both PRs, confirmed all findings resolved, CI green on both. Posted re-review comments.
+**Learning:** Fast turnaround from team on Sentinel reviews. The review→fix→re-review loop works well when findings are specific and actionable. Both SDR-1248 PRs now ready for Hitesh.
+
+## 2026-03-24 — Heartbeat: ruh-super-admin-fe — CI fix (PR #139)
+
+**What happened:** Stage 3 CI jobs (E2E, Lighthouse, Bundle Size) all failed with "Artifact not found for name: build-output". Build job completed successfully and `.next/` was produced, but `upload-artifact@v4` silently skipped it.
+**Root cause:** `upload-artifact@v4` defaults `include-hidden-files` to `false`. Since `.next` starts with a dot, the entire directory was treated as hidden and skipped. No files uploaded = downstream jobs couldn't download.
+**Fix applied:** Added `include-hidden-files: true` to both `ci.yml` and `nightly-regression.yml` build artifact upload steps.
+**Learning:** Any Next.js CI pipeline using `upload-artifact@v4` to share `.next/` between jobs MUST set `include-hidden-files: true`. This is a silent failure — the upload step warns but doesn't error, so the build job passes while all consumers fail.
+
+## 2026-03-24 — Heartbeat: ruh-super-admin-fe — Component test fixes
+
+**What happened:** 7 new component test files (45+ tests) all failed in CI. Two root causes: (1) `@testing-library/dom` peer dependency missing, (2) test code bugs.
+**Root cause 1:** `@testing-library/react@16` requires `@testing-library/dom` as peer dep but it wasn't in package.json or yarn.lock.
+**Root cause 2:** `screen.getByAlt()` doesn't exist (correct: `screen.getByAltText()`). Also `userEvent.click()` on submit button in jsdom doesn't trigger form `onSubmit` — must use `fireEvent.submit(form)` for validation tests. Password toggle test used heuristic button finding instead of `screen.getByLabelText("Show password")`.
+**Fix applied:** Added `@testing-library/dom@^10.4.1`, fixed `getByAlt→getByAltText`, used `fireEvent.submit` for form validation, used `getByLabelText` for toggle.
+**Learning:** (1) Always verify peer dependencies are installed — CI uses `--frozen-lockfile` which won't auto-install peers. (2) In jsdom, `userEvent.click` on submit buttons is unreliable for form submission — use `fireEvent.submit`. (3) Use aria-labels to find buttons, not SVG heuristics.
+
+---
+
+## Frontend Testing Patterns (Next.js / TypeScript)
+
+### CI Pipeline
+- **Local E2E in PR CI** catches issues before merge — post-deploy E2E alone is too late (PR is already merged by then).
+- **Build artifact reuse** — `next build` produces `.next/`, upload as artifact, download in e2e-local/lighthouse/bundle-size jobs. No rebuilding 3 times.
+- **Concurrency control** is critical for frontend PRs — `cancel-in-progress: true` prevents stale runs piling up (frontend builds are expensive).
+- **Next.js build cache** (`actions/cache` on `.next/cache`) dramatically speeds up incremental builds in CI.
+- **`NEXT_TELEMETRY_DISABLED: 1`** — always set in CI to avoid telemetry noise.
+
+### Component Testing
+- Component tests fill the gap between unit tests (pure logic) and E2E (full browser). They render real React components with real DOM but without the full app.
+- **100-500x faster than E2E** — a component test takes ~50-100ms vs ~5-30s for E2E.
+- Test behavior, not implementation — use `screen.getByRole()`, `getByText()`, `getByLabelText()` over `getByTestId()`.
+- `userEvent` over `fireEvent` — `userEvent` simulates real user behavior (focus, click, type), `fireEvent` is low-level synthetic.
+- Mock at the boundary — mock API hooks (React Query/SWR) and context providers, not internal component methods.
+- Mock `next/navigation` for any component that uses `useRouter`, `usePathname`, `useSearchParams`.
+
+### Playwright / E2E
+- `webServer` config in `playwright.config.ts` is required for local E2E — it starts `next start` automatically.
+- `reuseExistingServer: !process.env.CI` — in CI always start fresh, locally reuse dev server.
+- Playwright artifacts (screenshots, videos, traces) only on failure — saves CI time and storage.
+- `data-testid` selectors are preferred but not always present in existing codebases — fallback to `getByRole`/`getByText`.
+
+### Performance
+- **Lighthouse budgets** catch silent perf regressions — set FCP < 2s, LCP < 3s, TTI < 5s as starting points.
+- **Bundle size checks** — 500KB per-chunk limit catches accidental large imports (e.g., importing all of lodash).
+- `wait-on` package is needed to wait for `next start` before Lighthouse runs — `npx wait-on http://localhost:3000 --timeout 30000`.
+
+### Accessibility
+- `@axe-core/cli` for quick nightly a11y checks — run against deployed or local build.
+- Keep it nightly (not PR CI) to avoid slowing down the main pipeline — a11y violations rarely appear per-PR.
