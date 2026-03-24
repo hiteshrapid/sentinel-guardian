@@ -1462,3 +1462,47 @@ export default defineConfig({
 });
 ```
 
+
+### Frontend Browser Strategy
+
+**PR CI:** Chromium only. Speed > coverage for developer feedback loops.
+
+**Nightly regression:** Chromium + WebKit. Catches browser-specific rendering bugs overnight without slowing down PRs.
+
+**Skip Firefox** unless analytics show meaningful traffic (< 3% globally for admin tools).
+
+#### Playwright config pattern:
+
+```typescript
+// playwright.config.ts
+const isNightly = !!process.env.NIGHTLY;
+
+export default defineConfig({
+  projects: isNightly
+    ? [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+      ]
+    : [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+      ],
+});
+```
+
+#### Nightly regression workflow addition:
+
+Pass `NIGHTLY=true` env var in the nightly regression E2E jobs:
+
+```yaml
+  e2e-local:
+    # ...
+    env:
+      NIGHTLY: true
+      E2E_BASE_URL: http://localhost:3000
+```
+
+#### When to apply:
+
+- **Internal admin tools** (`ruh-super-admin-fe`): Chromium only everywhere. Users are internal team on Chrome.
+- **Customer-facing apps** (`ruh-app-fe`): Chromium in PR CI, Chromium + WebKit in nightly.
+- **Never add multi-browser to PR CI** — 3x time, 3x flakiness, blocks developers for edge cases that can wait until morning.
