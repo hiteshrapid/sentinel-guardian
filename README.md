@@ -249,6 +249,6 @@ MIT — see [LICENSE](LICENSE)
 
 ---
 
-Built by [Hitesh Goyal](https://github.com/iamhiteshgoyal) — founder of [Ruh AI](https://ruh.ai).
+Built by [Hitesh Goyal](https://github.com/iamhiteshgoyal) — [Ruh AI](https://ruh.ai).
 
 *"Great testing, like great energy, should flow freely to every codebase."*
