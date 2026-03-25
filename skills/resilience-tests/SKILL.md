@@ -50,16 +50,16 @@ Before writing tests, detect the stack and load the matching context from `conte
 
 ```bash
 # Find all external HTTP calls
-grep -rn "httpx\|requests\|aiohttp\|AsyncClient" sdr_backend/ --include="*.py" | grep -v __pycache__ | grep -v test
+grep -rn "httpx\|requests\|aiohttp\|AsyncClient" src/ --include="*.py" | grep -v __pycache__ | grep -v test
 
 # Find all DB operations
-grep -rn "await.*find\|await.*insert\|await.*update\|await.*delete\|await.*aggregate" sdr_backend/ --include="*.py" | grep -v __pycache__ | grep -v test | head -20
+grep -rn "await.*find\|await.*insert\|await.*update\|await.*delete\|await.*aggregate" src/ --include="*.py" | grep -v __pycache__ | grep -v test | head -20
 
 # Find all client classes
-grep -rn "class.*Client\|class.*Api\b" sdr_backend/utils/clients/ --include="*.py"
+grep -rn "class.*Client\|class.*Api\b" src/utils/clients/ --include="*.py"
 
 # Find existing error handling
-grep -rn "except.*Exception\|except.*Error\|raise HTTP" sdr_backend/ --include="*.py" | grep -v __pycache__ | grep -v test | wc -l
+grep -rn "except.*Exception\|except.*Error\|raise HTTP" src/ --include="*.py" | grep -v __pycache__ | grep -v test | wc -l
 ```
 
 Map each external dependency → what happens if it fails → is that tested?
@@ -95,7 +95,7 @@ def _mock_external_services():
 ```python
 async def test_scheduler_timeout_returns_graceful_error(client):
     with patch(
-        "sdr_backend.utils.clients.scheduler.SchedulerApi.create_scheduler",
+        "your_app.utils.clients.external.ExternalApi.call",
         new_callable=AsyncMock,
         side_effect=httpx.TimeoutException("Connection timed out"),
     ):
@@ -109,7 +109,7 @@ async def test_scheduler_timeout_returns_graceful_error(client):
 ```python
 async def test_db_connection_lost_returns_500(client):
     with patch(
-        "sdr_backend.repositories.campaign.Campaign.find",
+        "your_app.repositories.model.Model.find",
         new_callable=AsyncMock,
         side_effect=ConnectionError("MongoDB connection lost"),
     ):
@@ -121,7 +121,7 @@ async def test_db_connection_lost_returns_500(client):
 ```python
 async def test_pdl_returns_html_instead_of_json(client):
     with patch(
-        "sdr_backend.utils.clients.pdl.PDLClient.search",
+        "your_app.utils.clients.third_party.ThirdPartyClient.search",
         new_callable=AsyncMock,
         return_value="<html>502 Bad Gateway</html>",
     ):

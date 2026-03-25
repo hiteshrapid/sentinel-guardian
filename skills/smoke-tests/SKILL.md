@@ -12,11 +12,11 @@ description: >
   defense after every deploy.
 ---
 
-# Python Monolith — Smoke Tests Skill
+# Smoke Tests Skill
 
 ## Stack Adaptation
 
-Before writing any tests, detect the project'"'"'s stack and load the matching context:
+Before writing any tests, detect the project's stack and load the matching context:
 
 | Signal | Context File |
 |--------|-------------|

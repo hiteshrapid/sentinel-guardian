@@ -115,7 +115,7 @@ Timeout:    900s (15min)
 
 ## Spawn Order
 
-Matches the CI pipeline from `ruh-ai/communication-channel-service`:
+Matches the canonical CI pipeline (see `github-pipeline` skill):
 
 ```
 Phase 0: Analyzer (detect stack, produce test plan)
@@ -208,8 +208,8 @@ Deploy → Smoke (real HTTP) → E2E (browser/journey) → DAST (OWASP ZAP)
 ## Connected Repo Record Schema
 
 ```yaml
-repo: ruh-ai/sdr-backend
-local_path: ~/Desktop/Ruh Development/Repos/sdr-backend
+repo: ruh-ai/your-repo
+local_path: ~/repos/your-repo
 primary_branch: dev
 stack: fastapi-beanie
 ci_workflow: CI Tests
@@ -245,10 +245,9 @@ See SOUL.md for detailed coverage rules. Summary:
 @pytest.fixture(autouse=True)
 def _mock_external_services():
     with (
-        patch("sdr_backend.utils.clients.scheduler.SchedulerApi.create_scheduler", ...),
-        patch("sdr_backend.utils.clients.trigger.TriggerApi.create_trigger", ...),
-        patch("sdr_backend.utils.clients.inbox_rotation.InboxRotationApi.get_warmup_status", ...),
-        patch("sdr_backend.utils.clients.agent_client.AgentClient.__init__", lambda self: None),
+        patch("your_app.utils.clients.external_a.ExternalApiA.call", ...),
+        patch("your_app.utils.clients.external_b.ExternalApiB.fetch", ...),
+        patch("your_app.utils.clients.third_party.ThirdPartyClient.__init__", lambda self: None),
         # Add ALL external clients here — never in individual test files
     ):
         yield

@@ -145,12 +145,12 @@ Regression failed:
 
 ### Example
 ```markdown
-## 2026-03-20 — Heartbeat: sdr-backend — CI fix
+## {date} — Heartbeat: {repo-name} — CI fix
 
-**What happened:** Integration tests failed on PR #52 — `ConnectionRefusedError` on MongoDB container.
-**Root cause:** Testcontainers timeout — GitHub Actions runner was under heavy load.
-**Fix applied:** Increased container startup timeout from 30s to 60s in conftest.py.
-**Learning:** Default Testcontainers timeout (30s) is too aggressive for shared CI runners. Use 60s minimum.
+**What happened:** Integration tests failed — container startup timeout.
+**Root cause:** CI runner under heavy load, default timeout too aggressive.
+**Fix applied:** Increased container startup timeout from 30s to 60s.
+**Learning:** Default timeout (30s) is too aggressive for shared CI runners. Use 60s minimum.
 ```
 
 ### Gate Rule

@@ -13,11 +13,11 @@ description: >
   environment.
 ---
 
-# Python Monolith — Regression Tests Skill
+# Regression Tests Skill
 
 ## Stack Adaptation
 
-Before writing any tests, detect the project'"'"'s stack and load the matching context:
+Before writing any tests, detect the project's stack and load the matching context:
 
 | Signal | Context File |
 |--------|-------------|

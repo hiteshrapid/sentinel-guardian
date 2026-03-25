@@ -3,7 +3,7 @@ name: test-setup
 description: >
   Bootstrap the complete test infrastructure for a backend application from scratch.
   Run this skill FIRST — before any other test skill. It installs all dependencies
-  required by all 6 downstream skills (unit, integration, contract, security, smoke, regression),
+  required by all downstream skills (unit, integration, contract, security, resilience, smoke, regression, component-tests),
   creates every directory and scaffold file, writes the master pytest configuration with all test
   project configurations, adds all pyproject.toml/Makefile scripts, creates shared test helpers
   (auth, DB seeding), and validates the entire setup is wired correctly before a single test is
@@ -14,11 +14,11 @@ description: >
   test file.
 ---
 
-# Python Monolith — Test Infrastructure Setup Skill
+# Test Infrastructure Setup Skill
 
 ## Stack Adaptation
 
-Before writing any tests, detect the project'"'"'s stack and load the matching context:
+Before writing any tests, detect the project's stack and load the matching context:
 
 | Signal | Context File |
 |--------|-------------|

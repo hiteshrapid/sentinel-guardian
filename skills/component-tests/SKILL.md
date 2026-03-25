@@ -187,10 +187,10 @@ describe('LoginForm', () => {
   it('calls onSubmit with credentials when form is valid', async () => {
     const onSubmit = vi.fn();
     render(<LoginForm onSubmit={onSubmit} />);
-    await userEvent.type(screen.getByLabelText(/email/i), 'test@ruh.ai');
+    await userEvent.type(screen.getByLabelText(/email/i), 'test@example.com');
     await userEvent.type(screen.getByLabelText(/password/i), 'password123');
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
-    expect(onSubmit).toHaveBeenCalledWith({ email: 'test@ruh.ai', password: 'password123' });
+    expect(onSubmit).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password123' });
   });
 
   it('shows error message when error prop is set', () => {

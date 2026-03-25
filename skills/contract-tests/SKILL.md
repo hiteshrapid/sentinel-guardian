@@ -12,11 +12,11 @@ description: >
   against silent breaking changes that break multiple consumers at once.
 ---
 
-# Python Monolith — Contract Tests Skill
+# Contract Tests Skill
 
 ## Stack Adaptation
 
-Before writing any tests, detect the project'"'"'s stack and load the matching context:
+Before writing any tests, detect the project's stack and load the matching context:
 
 | Signal | Context File |
 |--------|-------------|

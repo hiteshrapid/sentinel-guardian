@@ -31,7 +31,7 @@ Run this **after every test-writing phase** and **before committing**. No except
 
 ```bash
 # Find all external client classes in source
-grep -rn "class.*Client\|class.*Api\b" sdr_backend/utils/clients/ --include="*.py" | grep -v __pycache__
+grep -rn "class.*Client\|class.*Api\b" <source_dir>/utils/clients/ --include="*.py" | grep -v __pycache__
 
 # For each client, verify it's mocked in the appropriate conftest
 for client in AgentClient SchedulerApi TriggerApi InboxRotationApi PDLClient ApolloClient GCSClient RedisClient OrganisationClient MCPClient ApiGatewayClient AgentGatewayClient; do
@@ -46,7 +46,7 @@ done
 
 ```bash
 # Check for production DB defaults
-grep -rn '"sdr"' tests/ --include="*.py" | grep -v "test_sdr\|sdr_backend\|sdr-backend\|__pycache__"
+grep -rn "<production_db_name>" tests/ --include="*.py" | grep -v __pycache__
 
 # Check for time-based IDs (orphan data on every run)
 grep -rn "time.time()\|time()" tests/ --include="*.py" | grep -i "user_id\|mock_user\|test_user" | grep -v __pycache__
@@ -129,7 +129,7 @@ find tests/ -name "test_final*.py" -o -name "test_remaining*.py" -o -name "test_
 
 # Verify tests are source-aligned
 ls tests/unit/ | sed 's/test_//' | sed 's/.py//' | sort > /tmp/test_modules.txt
-ls sdr_backend/**/*.py | sed 's/.*\///' | sed 's/.py//' | sort > /tmp/source_modules.txt
+ls <source_dir>/**/*.py | sed 's/.*\///' | sed 's/.py//' | sort > /tmp/source_modules.txt
 # Unmatched test files may be catch-alls in disguise
 ```
 

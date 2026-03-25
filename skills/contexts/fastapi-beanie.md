@@ -173,7 +173,7 @@ These are the external service clients that must be mocked in unit tests:
 - PDLClient — People Data Labs enrichment
 - ApolloClient — Apollo.io enrichment
 - GCSClient — Google Cloud Storage
-- InboxRotationClient — email inbox rotation
+- ExternalServiceClient — email inbox rotation
 - AgentGatewayClient — AI agent gateway
 - OrganisationClient — organization management
 - MCPClient — Model Context Protocol

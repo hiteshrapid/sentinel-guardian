@@ -11,11 +11,11 @@ description: >
   it contains setup, patterns, and a mandatory verification checklist.
 ---
 
-# Python Monolith — Unit Tests Skill
+# Unit Tests Skill
 
 ## Stack Adaptation
 
-Before writing any tests, detect the project'"'"'s stack and load the matching context:
+Before writing any tests, detect the project's stack and load the matching context:
 
 | Signal | Context File |
 |--------|-------------|
