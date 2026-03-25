@@ -1,16 +1,15 @@
 # commit-lint.yml — Commit Message Validator
 
-**Customization point**: The `PATTERN` should match the user's Jira project keys AND conventional commit prefixes. Default accepts both Jira tickets (`RP-12 message`) and conventional commits (`feat: message`, `fix(scope): message`).
+**Customization point**: The `PATTERN` and the ticket prefix in the validation message should match the user's Jira project keys. Default is `^([A-Z]+-[0-9]+|\[QA Release\]|\[Prod Release\])`.
 
-**Lesson learned**: Don't restrict to only Jira tickets — always also accept conventional commits (`feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `revert`). CI bots, automated tools, and quick fixes often use conventional commits. Blocking them creates unnecessary friction.
+**Policy**: Every commit must start with a Jira ticket ID. No conventional commits (`feat:`, `fix:`, etc.) allowed. Every piece of work starts with a Jira ticket.
 
 ```yaml
 name: Commit Message Lint
 
-# Called by main.yml. Not triggered directly.
+# Called by ci.yml. Not triggered directly.
 # Validates every commit starts with a Jira ticket ID or a release tag.
 # Valid:   RP-12 Completed Auth  |  [QA Release] March batch  |  [Prod Release] v1.2
-# Valid:   feat: add user export  |  fix(auth): token refresh  |  chore(ci): update deps
 # Skips merge commits and revert commits automatically.
 
 on:
@@ -45,7 +44,7 @@ jobs:
         run: |
           BASE="${{ steps.range.outputs.base }}"
           HEAD="${{ steps.range.outputs.head }}"
-          PATTERN='^([A-Z]+-[0-9]+|\[QA Release\]|\[Prod Release\]|(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.*\))?[!]?:)'
+          PATTERN='^([A-Z]+-[0-9]+|\[QA Release\]|\[Prod Release\])'
 
           echo "Checking commits from $BASE to $HEAD"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -72,7 +71,7 @@ jobs:
               echo "✅  PASS   $SHA — $MSG"
             else
               echo "❌  FAIL   $SHA — $MSG"
-              echo "           Expected: TICKET-123 message  |  feat: message  |  fix(scope): message  |  [QA Release] message"
+              echo "           Expected: TICKET-123 message  or  [QA Release] message  or  [Prod Release] message"
               FAILED=$((FAILED + 1))
             fi
 

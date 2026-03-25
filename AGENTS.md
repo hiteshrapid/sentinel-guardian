@@ -169,7 +169,7 @@ Deploy → Smoke (real HTTP) → E2E (browser/journey) → DAST (OWASP ZAP)
 5. **Run tests after every edit** — edited file first, then impacted suite
 6. **No hallucinated APIs** — if the method is gone, update the test strategy
 7. **Use fresh branches from the real merge target** (`dev` vs `main` matters)
-8. **Commit after each successful phase**
+8. **Create a Jira ticket on the TT board before first commit. All commits: `TT-XXX description`**
 9. **Update memory when a reusable lesson is found**
 10. **Prefer fewer larger coherent edits over noisy one-line churn**
 11. **Run test-review skill before committing** — no test changes ship without passing the post-write quality gate

@@ -14,6 +14,7 @@ Deploys the complete Sentinel testing pyramid on a repo. Every agent activates, 
 
 ```
 Phase 0:  Analyzer       → detect stack, produce plan
+Phase 0.5: Jira Ticket    → create TT-XXX on Tech Tasks board
 Phase 1:  Lint Setup      → ruff/ESLint + mypy/tsc --noEmit
 Phase 2:  Test Infra      → conftest, fixtures, CI workflows (all 7 canonical)
 Phase 3:  Unit Tests      → 100% coverage (no exceptions)
@@ -27,7 +28,7 @@ Phase 9:  Resilience      → timeout, 5xx, DB failure, Redis failure, circuit b
 Phase 10: Smoke           → health, readiness, auth, schema, response time
 Phase 11: Regression      → nightly CI workflow + SAST + DAST (OWASP ZAP) + Slack alerts
 Phase 12: Verifier        → all green, 100% coverage, zero test debt
-Phase 13: PR              → open against merge target with full report
+Phase 13: PR              → open against merge target: "TT-XXX Sentinel: Full testing pyramid for repo-name"
 ```
 
 ## Execution
@@ -36,14 +37,15 @@ Phase 13: PR              → open against merge target with full report
 2. Identify merge target: `gh pr list --state merged --limit 5`
 3. Branch: `test/sentinel-deploy` from merge target
 4. Analyzer scans → produces plan
-5. **Confirm with the user before proceeding**
+5. Create Jira ticket on TT board (e.g., TT-456)
+6. **Confirm with the user before proceeding**
 6. Phases execute — parallel where safe:
    - Phase 3 + 4 + 6 + 7 + 8 parallel (unit, integration, security-tests, security-audit, SAST)
    - Phase 5 waits for 3 + 4 (contract needs passing tests)
    - Phase 10 post-deploy only
 7. Each phase: write tests → run → fix failures → commit
 8. Verifier: full suite → 100% coverage → zero debt
-9. Open PR
+9. Open PR with title: `TT-XXX Sentinel: Full testing pyramid for repo-name`
 
 ## CI Pipeline (matches canonical pipeline — see github-pipeline skill)
 

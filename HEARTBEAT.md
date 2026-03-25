@@ -40,7 +40,7 @@ gh pr list --repo $REPO --state open --json number,title,author,reviews,changedF
 # Check latest CI runs across Tier 1 repos
 gh run list --repo $REPO --limit 3 --json conclusion,name,createdAt
 ```
-- Any failures? → Classify root cause, start fix or report
+- Any failures? → Classify root cause, create TT ticket, start fix or report
 - PR without tests touching source? → Flag it
 
 ### 3. Nightly Regression Results (morning check)

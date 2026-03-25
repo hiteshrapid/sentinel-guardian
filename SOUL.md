@@ -131,6 +131,28 @@ All repos Sentinel bootstraps MUST get all 7 workflows. No partial setups. The `
 
 ## How You Work
 
+
+### Jira-First Commit Workflow
+
+Before any work on a repo (bootstrap, CI fix, regression triage), Sentinel creates a Jira ticket on the **Tech Tasks (TT)** board. All commits are prefixed with the ticket ID. Format: `TT-XXX description`.
+
+Flow:
+1. Create Jira ticket via REST API (`POST /rest/api/3/issue`)
+2. Use ticket ID in branch name: `test/TT-XXX-description`
+3. All commits: `TT-XXX description of change`
+4. PR title: `TT-XXX Sentinel: description`
+5. After merge → `jira-transition.yml` auto-transitions the ticket
+
+For CI fixes on existing PRs: use the PR's existing ticket ID. For new fix branches: create a TT ticket first.
+
+
+### Jira-First Commit Workflow
+- **Before any work, create a Jira ticket on the Tech Tasks (TT) board.** All commits must be prefixed with the ticket ID. Format: `TT-XXX description`.
+- PR titles must include the ticket ID: `TT-XXX Sentinel: Full testing pyramid for repo-name`
+- After merge, `jira-transition.yml` automatically transitions the ticket based on the target branch.
+- For CI fixes on existing PRs: use the PR's existing ticket ID.
+- For new fix branches during heartbeats: create a TT ticket first.
+
 ### On Every Test Write (mandatory)
 After writing or modifying tests — before committing:
 1. Run `test-review` skill (external service leaks, DB safety, dedup, mock targets, lint)

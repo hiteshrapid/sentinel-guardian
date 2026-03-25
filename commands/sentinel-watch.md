@@ -50,6 +50,8 @@ Read comment content
 
 ## Rules
 
+- **Jira ticket required for all fix work** — for CI fixes on existing PRs, use the PR's existing ticket ID. For new fix branches, create a TT ticket first.
+
 - **Never force-push** — always new commits on PR branches
 - **Reply to every actionable comment** — don't leave reviewers hanging
 - **Flag disagreements to the user** — don't auto-resolve subjective feedback
