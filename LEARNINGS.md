@@ -314,3 +314,10 @@
 **What happened:** Nightly regression E2E journey tests failed — same `httpx.UnsupportedProtocol` error. Additionally, Slack notification step failed because `SLACK_WEBHOOK_URL` secret is not configured.
 **Root cause:** `E2E_BASE_URL` not configured in the nightly regression workflow → tests get empty URL. Slack webhook secret missing.
 **Learning:** Same pattern as sdr-backend — post-deploy/E2E tests in nightly regression need live service URLs. Without them, they should be skipped gracefully, not error out.
+
+## 2026-03-25 — SAST+DAST alignment across 3 repos
+
+**What happened:** Updated 3 open Hitesh PRs (sdr-backend #450, inbox-rotation #59, sdr-management-mcp #45) to add SAST+DAST to nightly regression workflows. CI was already green with SAST in ci.yml — regression was the missing piece.
+**Root cause:** Regression workflows were created before the gold standard pipeline was finalized. They had test suites but no static analysis or dynamic scanning.
+**Fix applied:** Added `regression-sast` (Semgrep) and `regression-dast` (OWASP ZAP) jobs to all 3 regression.yml files. Updated notify-on-failure to include new jobs.
+**Learning:** When adding new CI jobs (SAST/DAST), always update BOTH ci.yml AND regression.yml. The nightly regression should be a superset of PR CI — it runs everything CI runs plus smoke/E2E/DAST against live.
