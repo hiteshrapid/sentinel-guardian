@@ -40,12 +40,35 @@ Use for: alternative to Claude Code, parallel agent work.
 
 
 ### Jira API
-For creating tickets and reading board state. Required env vars:
-- `JIRA_BASE_URL` — e.g., `https://yourcompany.atlassian.net`
-- `JIRA_EMAIL` — CI bot email for API auth
-- `JIRA_API_TOKEN` — from id.atlassian.com → Security → API tokens
+For creating tickets and reading board state.
 
-Used by:
+**Configuration (env vars in `/home/hitesh/.openclaw/.env`):**
+- `JIRA_BASE_URL` = `https://ruh-ai-team.atlassian.net`
+- `JIRA_EMAIL` = `hitesh@ruh.ai`
+- `JIRA_API_TOKEN` = set in `.env` (API token from id.atlassian.com)
+
+**Constants:**
+- Default project: **TT** (Tech Tasks)
+- Board ID: **438**
+- Hitesh's account ID (assignee): `712020:cdec0682-ca29-4440-8aa1-55f17430917a`
+
+**Create ticket example:**
+```bash
+curl -s -X POST \
+  -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fields": {
+      "project": {"key": "TT"},
+      "summary": "Sentinel: Bootstrap testing for repo-name",
+      "issuetype": {"name": "Task"},
+      "assignee": {"accountId": "712020:cdec0682-ca29-4440-8aa1-55f17430917a"}
+    }
+  }' \
+  "$JIRA_BASE_URL/rest/api/3/issue"
+```
+
+**Used by:**
 - Sentinel to create TT tickets before starting work
 - `jira-transition.yml` to auto-transition tickets after deploy
 - Heartbeat to link fix branches to tickets
