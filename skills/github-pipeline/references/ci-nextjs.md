@@ -1,23 +1,19 @@
-# ci.yml — Next.js PR Checks
+# ci.yml — Next.js Frontend PR Checks
 
-Key differences from plain TypeScript:
-- Adds a `build` job (`next build`) to catch build-time errors on PRs
-- E2E uses Playwright instead of Jest
-- No `contract` job (typically not applicable for Next.js frontends — add back if needed)
+Complete frontend CI pipeline for Next.js repos. Includes unit+component tests, build verification,
+local E2E via Playwright, Lighthouse performance audit, bundle size check, security audit, and SAST.
+
+No integration/contract/resilience jobs — those are backend concepts.
 
 ```yaml
 name: CI
 
-# Workflow 1a — Runs on every PR to dev/qa/main.
-# Does NOT trigger Build and Deploy (only ci-push.yml does).
-#
-# ── Jobs ──────────────────────────────────────────────────────────────────────
-# commit-lint → lint-typecheck → build
-#                              → unit
-#                              → integration
-#                              → e2e
-#                              → security-audit
-#                              → sast
+# commit-lint -> lint-typecheck -> unit-component
+#                                -> build -> e2e-local
+#                                         -> lighthouse
+#                                         -> bundle-size
+#                                -> security-audit
+#                                -> sast
 
 on:
   pull_request:
@@ -31,6 +27,7 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  NEXT_TELEMETRY_DISABLED: 1
 
 jobs:
   commit-lint:
@@ -49,10 +46,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "yarn" }
       - run: yarn install --frozen-lockfile
+      - run: yarn lint
       - run: npx tsc --noEmit
 
-  build:
-    name: Next.js Build
+  unit-component:
+    name: Unit + Component Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: lint-typecheck
@@ -61,21 +59,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "yarn" }
       - run: yarn install --frozen-lockfile
-      - run: cp .env.example .env.local
-      - run: yarn build
-
-  unit:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: lint-typecheck
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "yarn" }
-      - run: yarn install --frozen-lockfile
-      - run: cp .env.example .env.local
-      - run: yarn test:unit:coverage
+      - run: yarn test:coverage
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -83,40 +67,160 @@ jobs:
           name: coverage-report
           path: coverage/
 
-  integration:
-    name: Integration Tests
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     needs: lint-typecheck
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "yarn" }
       - run: yarn install --frozen-lockfile
-      - run: cp .env.example .env.local
-      - run: yarn test:integration
-        env:
-          TESTCONTAINERS_RYUK_DISABLED: "true"
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-
+            nextjs-${{ runner.os }}-
+      - run: yarn build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          include-hidden-files: true
+          retention-days: 1
 
-  e2e:
-    name: E2E Tests (Playwright)
+jobs:
+  commit-lint:
+    name: Commit Message Lint
+    if: github.event.pull_request.draft != true
+    uses: ./.github/workflows/commit-lint.yml
+
+  lint-typecheck:
+    name: Lint + Type Check
+    if: github.event.pull_request.draft != true
+    needs: commit-lint
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [build]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "yarn" }
       - run: yarn install --frozen-lockfile
-      - run: npx playwright install --with-deps
-      - run: cp .env.example .env.local
-      - run: yarn test:e2e
-      - name: Upload Playwright report
+      - run: yarn lint
+      - run: npx tsc --noEmit
+
+  unit-component:
+    name: Unit + Component Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - run: yarn test:coverage
+      - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-
+            nextjs-${{ runner.os }}-
+      - run: yarn build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          include-hidden-files: true
+          retention-days: 1
+
+  e2e-local:
+    name: E2E Tests (Local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+      - run: npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        run: yarn test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 7
+
+  lighthouse:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "yarn" }
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+      - name: Start server
+        run: yarn start &
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 30000
+      - name: Run Lighthouse
+        run: npx @lhci/cli autorun --collect.url=http://localhost:3000/login --collect.url=http://localhost:3000/ --assert.assertions.first-contentful-paint=["error",{"maxNumericValue":2000}] --assert.assertions.largest-contentful-paint=["error",{"maxNumericValue":3000}]
+
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+      - name: Analyze bundle
+        run: |
+          LARGE=$(find .next -name '*.js' -path '*chunks*' -size +500k | wc -l)
+          if [ "$LARGE" -gt 0 ]; then
+            echo "FAIL: $LARGE chunks exceed 500KB" && exit 1
+          fi
+          echo "All chunks under 500KB"
 
   security-audit:
     name: Security Audit
@@ -128,7 +232,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "yarn" }
       - run: yarn install --frozen-lockfile
-      - run: yarn security:audit
+      - run: yarn audit --groups dependencies --level high
 
   sast:
     name: SAST (Semgrep)

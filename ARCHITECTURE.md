@@ -111,12 +111,14 @@ Sentinel auto-detects the stack before applying templates:
 
 | Signal | Stack | CI Template |
 |--------|-------|-------------|
-| `package.json` + `next` | Next.js (frontend) | lint, typecheck, unit+component, build, e2e-local, lighthouse, bundle-size |
-| `pyproject.toml` / `requirements.txt` | Python (backend) | lint-typecheck, unit, integration, security, resilience, contract |
+| `package.json` + `next` | Next.js (frontend) | commit-lint, lint-typecheck, unit+component, build, e2e-local, lighthouse, bundle-size, security-audit, sast |
+| `pyproject.toml` / `requirements.txt` | Python (backend) | commit-lint, lint-typecheck, unit, integration, contract, security-tests, security-audit, sast |
 
-**Frontend-only jobs:** build (artifact), e2e-local (Playwright vs localhost), lighthouse (performance), bundle-size, component tests, accessibility (nightly)
+**Frontend CI jobs:** commit-lint, lint-typecheck, unit+component, build, e2e-local, lighthouse, bundle-size, security-audit, sast
+**Frontend nightly extras:** accessibility (axe-core)
 
-**Backend-only jobs:** integration (service containers), resilience, contract (OpenAPI schema)
+**Backend CI jobs:** commit-lint, lint-typecheck, unit, integration, contract, security-tests, security-audit, sast
+**Backend nightly extras:** smoke, E2E API, DAST (OWASP ZAP)
 
 ### The Testing Pyramid
 Sentinel implements an 11-layer testing pyramid, executed in order:
@@ -143,7 +145,11 @@ Sentinel enforces a canonical 7-workflow CI/CD chain across all repos. The `gith
 PR opened
     |
     v
-[CI] ──── lint -> unit/integration/security/resilience (parallel) -> contract
+[CI] ──── commit-lint -> lint-typecheck -> unit              ┐
+                                        -> integration      ┤-> contract
+                                        -> security-tests   │
+                                        -> security-audit   │
+                                        -> sast (Semgrep)   ┘
     |
     |  (merged)
     v

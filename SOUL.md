@@ -97,7 +97,7 @@ PR opened
 ```
 
 Plus two standalone workflows:
-- **[6. Commit Lint]** — called by CI, validates commit message format (Jira tickets + conventional commits)
+- **[6. Commit Lint]** — called by CI, validates commit message format (Jira ticket prefix + release tags)
 - **[7. Nightly Regression]** — scheduled full suite + smoke + E2E + SAST + DAST + Slack alerts
 
 ### Stack-Specific vs Shared Workflows

@@ -71,11 +71,11 @@ The `ci.yml` and `ci-push.yml` files differ by project type. Read the correct re
 
 ### CI Reference by Project Type
 
-| Project Type | `ci.yml` reference | `ci-push.yml` reference |
-|---|---|---|
-| TypeScript / Node.js | `references/ci.md` | `references/ci-push.md` |
-| Next.js | `references/ci-nextjs.md` | `references/ci-push-nextjs.md` |
-| Python | `references/ci-python.md` | `references/ci-push-python.md` |
+| Project Type | `ci.yml` | `ci-push.yml` | `regression.yml` |
+|---|---|---|---|
+| TypeScript / Node.js | `references/ci.md` | `references/ci-push.md` | `references/regression.md` |
+| Next.js | `references/ci-nextjs.md` | `references/ci-push-nextjs.md` | `references/regression-nextjs.md` |
+| Python | `references/ci-python.md` | `references/ci-push-python.md` | `references/regression-python.md` |
 
 ### Shared Workflow Files (same for all project types)
 
@@ -187,6 +187,48 @@ Apply to `dev`, `qa`, `main`:
   }
 }
 ```
+
+
+#### Next.js — additional setup required:
+```json
+{
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "npx playwright test"
+  }
+}
+```
+
+**vitest.config.ts** — include both unit and component test directories:
+```typescript
+export default defineConfig({
+  test: {
+    include: ['tests/unit/**/*.test.ts', 'tests/components/**/*.test.tsx'],
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+  },
+});
+```
+
+**playwright.config.ts** — must include webServer block for local E2E:
+```typescript
+export default defineConfig({
+  webServer: {
+    command: 'yarn start',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
+  },
+});
+```
+
+**.next/cache caching** — CI build job uses actions/cache for .next/cache. Build artifact upload must use `include-hidden-files: true`.
 
 #### Python — `pyproject.toml` / `requirements` setup:
 - `pytest` with `pytest-cov` for unit/integration tests

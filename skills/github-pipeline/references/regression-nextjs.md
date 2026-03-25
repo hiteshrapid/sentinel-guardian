@@ -23,7 +23,7 @@ name: Nightly Regression
 
 on:
   schedule:
-    - cron: "30 20 * * *"  # 2:00 AM IST (20:30 UTC)
+    - cron: "0 2 * * *"  # 2:00 AM UTC
   workflow_dispatch:
 
 env:
@@ -65,6 +65,7 @@ jobs:
         with:
           name: nightly-build
           path: .next/
+          include-hidden-files: true
           retention-days: 1
 
   # ── E2E Local (against next start) ──────────────────────────────────
