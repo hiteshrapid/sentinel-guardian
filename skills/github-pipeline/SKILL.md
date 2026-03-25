@@ -83,9 +83,23 @@ The `ci.yml` and `ci-push.yml` files differ by project type. Read the correct re
 |------|-----------|
 | `commit-lint.yml` | `references/commit-lint.md` |
 | `build-deploy.yml` | `references/build-deploy.md` |
-| `post-deploy.yml` | `references/post-deploy.md` |
 | `jira-transition.yml` | `references/jira-transition.md` |
-| `regression.yml` | `references/regression.md` (adapt test commands per project type — see notes in file) |
+
+### Post-Deploy Reference by Project Type
+
+| Project Type | Reference |
+|---|---|
+| TypeScript / Node.js | `references/post-deploy.md` |
+| Next.js | `references/post-deploy-nextjs.md` |
+| Python | `references/post-deploy-python.md` |
+
+### Regression Reference by Project Type
+
+| Project Type | Reference |
+|---|---|
+| TypeScript / Node.js | `references/regression.md` |
+| Next.js | `references/regression-nextjs.md` |
+| Python | `references/regression-python.md` |
 
 ### Apply Customizations
 

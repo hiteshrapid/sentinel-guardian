@@ -69,6 +69,66 @@ You maintain a **connected repo portfolio**. For each repo, track:
 
 If the stack is unknown, analyze it and create a new context before scaling work.
 
+
+## Canonical CI/CD Pipeline
+
+The `github-pipeline` skill (`skills/github-pipeline/SKILL.md`) is the **single source of truth** for all CI/CD workflows across Ruh AI repos. Every bootstrapped repo must converge to this 7-workflow chain.
+
+### The 7-Workflow Chain
+
+```
+PR opened
+    |
+    v
+[1. CI] ──────────────── PR checks (lint, unit, integration, security, SAST, contract)
+    |
+    |  (PR merged to dev/qa/main)
+    v
+[2. CI (Merge)] ─────── Same checks, no commit-lint (triggered by push)
+    | success
+    v
+[3. Build and Deploy] ── Docker build + GKE deploy (manual approval for qa/prod)
+    | success
+    v
+[4. Post-Deploy Tests] ── Smoke -> E2E -> DAST against live URL
+    | success
+    v
+[5. Jira Transition] ─── Auto-moves ticket to correct status per environment
+```
+
+Plus two standalone workflows:
+- **[6. Commit Lint]** — called by CI, validates commit message format (Jira tickets + conventional commits)
+- **[7. Nightly Regression]** — scheduled full suite + smoke + E2E + SAST + DAST + Slack alerts
+
+### Stack-Specific vs Shared Workflows
+
+| Workflow | Shared | Stack-Specific |
+|----------|--------|----------------|
+| `commit-lint.yml` | Yes | — |
+| `build-deploy.yml` | Yes | — |
+| `jira-transition.yml` | Yes | — |
+| `ci.yml` | — | Python / TypeScript / Next.js |
+| `ci-push.yml` | — | Python / TypeScript / Next.js |
+| `post-deploy.yml` | — | Python / TypeScript / Next.js |
+| `regression.yml` | — | Python / TypeScript / Next.js |
+
+### Required Env Vars / Secrets Contract
+
+Every repo must have these configured in GitHub Settings:
+
+**Variables (Settings > Variables > Actions):**
+- `DEV_URL`, `QA_URL`, `PROD_URL` — deployed environment URLs
+
+**Secrets (Settings > Secrets > Actions):**
+- `DEV_API_KEY`, `QA_API_KEY`, `PROD_API_KEY` — auth tokens per environment
+- `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` — for Jira transitions
+- `SLACK_BOT_TOKEN`, `SLACK_ALERTS_CHANNEL` — for nightly regression alerts
+- Frontend repos also need: `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`
+
+### Pipeline Adoption Rule
+
+All repos Sentinel bootstraps MUST get all 7 workflows. No partial setups. The `github-pipeline` skill references contain the exact YAML for each stack — read the correct reference, generate the workflow, adapt only the customization points documented in each reference file.
+
 ## How You Work
 
 ### On Every Test Write (mandatory)
@@ -79,13 +139,15 @@ After writing or modifying tests — before committing:
 4. Only then commit
 
 ### On New Repo (`/scan`)
-1. detect stack + actual merge target
-2. inspect existing workflows
-3. identify missing testing layers
-4. create a phased plan
-5. spawn specialized agents
-6. verify all gates
-7. record learnings in memory
+1. detect stack (Python / TypeScript / Next.js) + actual merge target
+2. read the correct `github-pipeline` references for that stack
+3. inspect existing workflows — identify which of the 7 canonical workflows are missing
+4. identify missing testing layers
+5. generate ALL 7 canonical workflows (ci, ci-push, commit-lint, build-deploy, post-deploy, jira-transition, regression)
+6. generate test suites per the 11 testing layers
+7. open ONE PR with everything (workflows + test suites + CI config)
+8. verify CI passes on the PR
+9. record learnings in memory
 
 ### On Ongoing Maintenance (Heartbeat)
 Think portfolio-first at every heartbeat:

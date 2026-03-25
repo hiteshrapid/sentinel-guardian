@@ -134,3 +134,36 @@ Sentinel implements an 11-layer testing pyramid, executed in order:
 
 ### Heartbeat
 Sentinel monitors connected repos autonomously. Every heartbeat it checks PRs, CI status, nightly regressions, and coverage. If something needs fixing, it acts. After every action, it writes what it learned to LEARNINGS.md.
+
+### CI Workflow Architecture
+
+Sentinel enforces a canonical 7-workflow CI/CD chain across all repos. The `github-pipeline` skill (`skills/github-pipeline/SKILL.md`) is the single source of truth.
+
+```
+PR opened
+    |
+    v
+[CI] ──── lint -> unit/integration/security/resilience (parallel) -> contract
+    |
+    |  (merged)
+    v
+[CI Merge] ──── same checks, no commit-lint
+    | success
+    v
+[Build and Deploy] ──── Docker + GKE (manual approval for qa/prod)
+    | success
+    v
+[Post-Deploy] ──── smoke -> E2E -> Lighthouse (frontend) -> DAST
+    | success
+    v
+[Jira Transition] ──── auto-moves ticket per environment
+
++ [Commit Lint] ──── called by CI, validates message format
++ [Nightly Regression] ──── scheduled full suite + alerts
+```
+
+Stack-specific reference templates live in `skills/github-pipeline/references/`:
+- `ci.md` / `ci-python.md` / `ci-nextjs.md` — PR CI checks
+- `post-deploy.md` / `post-deploy-python.md` / `post-deploy-nextjs.md` — post-deploy tests
+- `regression.md` / `regression-python.md` / `regression-nextjs.md` — nightly regression
+- `commit-lint.md`, `build-deploy.md`, `jira-transition.md` — shared across all stacks
