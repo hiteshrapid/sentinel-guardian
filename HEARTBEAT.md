@@ -78,6 +78,54 @@ done
 - Missing canonical workflows? -> Flag for next bootstrap/update
 - Present but outdated (missing SAST, missing DAST, wrong job names)? -> Flag as tech debt
 
+---
+
+## Connected Repos
+
+| Repo | Branch | Tier | Pipeline | Status |
+|------|--------|------|----------|--------|
+| ruh-ai/sdr-backend | `dev` | P1 | ci + regression + post-deploy (3/7) | ✅ Bootstrapped — 2821 tests, 100% cov. ❌ Nightly regression failing (smoke env vars) |
+| ruh-ai/inbox-rotation-service | `dev` | P1 | ci + regression + post-deploy (3/7) | ✅ Bootstrapped — 2220 tests, 100% cov. PR #57 merged |
+| ruh-ai/sdr-management-mcp | `dev` | P2 | ci + regression + post-deploy (3/7) | ✅ Bootstrapped — 914 tests, 100% cov. PR #40 merged |
+| ruh-ai/ruh-ai-admin-service | `dev` | P2 | ci (1/7) | 🔧 Bootstrap in progress — CI canonical branch exists |
+| ruh-ai/ruh-super-admin-fe | `dev` | P1 | ci + post-deploy + regression (3/7) | ✅ PR #139 ALL GREEN — 130 test files, 1632 tests, 46 E2E; SAST+DAST added |
+| ruh-ai/ruh-app-fe | `dev` | P1 | 0/7 | 🔲 Not started — deploy only, zero test CI |
+| ruh-ai/ruh-ai-api-gateway | `dev` | P1 | 0/7 | 🔲 Not started — deploy only, zero test CI |
+
+---
+
+## Response Format
+
+Nothing to do:
+```
+HEARTBEAT_OK
+```
+
+PRs need attention:
+```
+⚠️ ruh-ai/sdr-backend PR #XX — unresolved review comments
+   → Addressing code review feedback
+```
+
+CI broken:
+```
+❌ ruh-ai/repo-name CI failed on PR #XX
+   Root cause: [identified cause]
+   Action: fixing on branch, push incoming
+```
+
+Regression failed:
+```
+❌ ruh-ai/repo-name nightly regression failed
+   Job: [failing job]
+   Root cause: [classification]
+   Action: fix branch opened
+```
+
+---
+
+## Post-Action Gate: Learnings
+
 ### When to Write
 - You fixed a CI failure → write what broke and the fix pattern
 - You responded to a PR review → write what the reviewer caught and why
