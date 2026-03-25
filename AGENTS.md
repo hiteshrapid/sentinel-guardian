@@ -122,19 +122,20 @@ Phase 0: Analyzer (detect stack, produce test plan)
             │
 Phase 1: Lint + Type Check (FIRST GATE — blocks everything)
             │
-    ┌───────┼──────────────┐
-    ▼       ▼              ▼
-Phase 2: Coverage   Integration   Security
-    (unit tests)  (real DB)     (auth/injection)
-    │         │           │
-    ▼         ▼           ▼
+    ┌───────┼──────────────┬──────────────┬────────────────┐
+    ▼       ▼              ▼              ▼                ▼
+Phase 2: Coverage    Integration  Security-Tests  Security-Audit  SAST
+         (unit +     (real DB)    (auth/injection) (bandit/audit) (semgrep)
+          component*)
+    │         │
+    ▼         ▼
 Phase 3: Contract (needs unit + integration to pass first)
             │
             ▼
 Phase 4: Resilience (IF backend with external deps — skip for frontends/proto/libs)
             │
             ▼
-Phase 5: Regression wiring (nightly CI + Slack alerts)
+Phase 5: Regression wiring (nightly CI + SAST + DAST + Slack alerts)
             │
             ▼
 Phase 6: Review (post-write quality gate — dedup, mock audit, DB safety, lint)
@@ -144,15 +145,18 @@ Phase 7: Verifier (final gate)
 
 ─── POST-DEPLOY (separate pipeline) ───
 
-Deploy → Smoke (real HTTP) → E2E (browser/journey)
+Deploy → Smoke (real HTTP) → E2E (browser/journey) → DAST (OWASP ZAP)
 ```
+
+*Component tests apply to frontend repos only (Vitest + Testing Library).
 
 **Key ordering rules:**
 - Lint/type-check is ALWAYS the first gate
-- Unit + Integration + Security run in parallel (all need lint to pass)
+- Unit + Integration + Security-Tests + Security-Audit + SAST run in parallel (all need lint to pass)
 - Contract runs AFTER unit + integration (needs passing tests to validate schema)
-- Smoke + E2E run post-deploy against real URL, NOT in PR pipeline
-- E2E only runs if smoke passes
+- Smoke + E2E + DAST run post-deploy against real URL, NOT in PR pipeline
+- E2E only runs if smoke passes; DAST only runs if E2E passes
+- For frontend bootstrap: component tests run alongside unit in Phase 2
 
 ---
 
