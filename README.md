@@ -9,10 +9,10 @@ Sentinel is an AI-powered testing agent built on [OpenClaw](https://openclaw.com
 - **4,000+ tests** generated across production repositories
 - **100% unit test coverage** achieved and enforced autonomously
 - **71 targeted tests** written in a single PR review cycle to fill coverage gaps
-- **10-layer testing pyramid** — unit → component → integration → contract → security → resilience → smoke → API E2E → browser E2E → regression
+- **11-layer testing pyramid** — unit → component → integration → contract → security → resilience → smoke → API E2E → browser E2E → regression
 - **5 stack contexts** — FastAPI/Beanie, FastAPI/SQLAlchemy, Flask, Django, Next.js/TypeScript
 - **Frontend-aware** — Lighthouse performance budgets, bundle size checks, component tests, local E2E in PR CI
-- **3 canonical CI workflows** bootstrapped per repo — `ci.yml`, `post-deploy.yml`, `regression.yml`
+- **7 canonical CI workflows** bootstrapped per repo — see `github-pipeline` skill for the full chain
 
 ## Two Modes of Operation
 
@@ -96,7 +96,7 @@ Observations:
 
 ## CI Workflow Architecture
 
-Every bootstrapped repo gets three workflows:
+Every bootstrapped repo gets seven canonical workflows (see `github-pipeline` skill). The three core ones:
 
 ```
 ci.yml (PR + push)              post-deploy.yml (after deploy)     regression.yml (nightly)
@@ -104,19 +104,19 @@ ci.yml (PR + push)              post-deploy.yml (after deploy)     regression.ym
 lint-typecheck ──┐              Deploy succeeds                    Cron schedule
   ├── unit       │              │                                  │
   ├── integration│              ├── smoke (health + endpoints)     ├── full offline suite
-  ├── security   │              └── e2e (journeys)                 ├── smoke vs live
-  └── contract ──┘                                                 ├── e2e vs live
+  ├── security   │→ contract    ├── e2e (journeys)                 ├── SAST (Semgrep)
+  ├── sec-audit  │              └── dast (OWASP ZAP)               ├── smoke + e2e vs live
+  └── sast ──────┘                                                 ├── dast (OWASP ZAP)
                                                                    └── Slack alert on failure
-security-audit (parallel, no deps)
 ```
 
 **Job dependency graph:**
 ```
-lint-typecheck          security-audit
-      │                 (independent)
-  ┌───┼───────────┐
-  ▼   ▼           ▼
-unit  integration  security-tests
+lint-typecheck
+      │
+  ┌───┼───────────┬───────────────┬───────────────┐
+  ▼   ▼           ▼               ▼               ▼
+unit  integration  security-tests  security-audit  sast (Semgrep)
   │   │
   ▼   ▼
 contract (needs: [unit, integration])

@@ -45,7 +45,7 @@ Phase 13: PR              → open against merge target with full report
 8. Verifier: full suite → 100% coverage → zero debt
 9. Open PR
 
-## CI Pipeline (matches gold standard: communication-channel-service)
+## CI Pipeline (matches canonical pipeline — see github-pipeline skill)
 
 ```
 PR CI:
