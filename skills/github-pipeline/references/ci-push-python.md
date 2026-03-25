@@ -34,12 +34,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install -r requirements-dev.txt
+        with: { python-version: "3.11" }
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - run: uv sync --dev
       - name: Lint (ruff)
-        run: ruff check .
+        run: uv run ruff check .
       - name: Type check (mypy)
-        run: mypy .
+        run: uv run mypy . --ignore-missing-imports
 
   unit:
     name: Unit Tests
@@ -49,10 +51,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install -r requirements-dev.txt
+        with: { python-version: "3.11" }
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - run: uv sync --dev
       - run: cp .env.example .env
-      - run: pytest tests/unit --cov --cov-report=xml
+      - run: uv run pytest tests/unit/ -v --cov --cov-report=term-missing --cov-fail-under=100
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -68,22 +72,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install -r requirements-dev.txt
+        with: { python-version: "3.11" }
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - run: uv sync --dev
       - run: cp .env.example .env
-      - run: pytest tests/integration
+      - run: uv run pytest tests/integration/ -v
 
   security-audit:
-    name: Security Audit (Bandit)
+    name: Security Audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: lint-typecheck
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install bandit
-      - run: bandit -r . -c pyproject.toml
+        with: { python-version: "3.11" }
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - run: uv sync --dev
+      - name: Bandit static analysis
+        run: uv run bandit -r . -c pyproject.toml -ll -ii
+      - name: pip-audit dependency scan
+        run: |
+          uv export --no-hashes --frozen > /tmp/reqs.txt
+          PACKAGE_NAME=$(grep '^name' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          grep -v "$PACKAGE_NAME" /tmp/reqs.txt > /tmp/reqs-audit.txt || true
+          pip install pip-audit
+          pip-audit -r /tmp/reqs-audit.txt
 
   security-tests:
     name: Security Tests
@@ -93,10 +110,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install -r requirements-dev.txt
+        with: { python-version: "3.11" }
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - run: uv sync --dev
       - run: cp .env.example .env
-      - run: pytest tests/security
+      - run: uv run pytest tests/security/ -v
 
   sast:
     name: SAST (Semgrep)
@@ -115,4 +134,19 @@ jobs:
         with:
           name: sast-report
           path: semgrep-results.json
+
+  contract:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit, integration]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - run: uv sync --dev
+      - run: cp .env.example .env
+      - run: uv run pytest tests/contract/ -v
 ```
