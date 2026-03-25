@@ -389,7 +389,8 @@ contract (needs: [unit, integration])
 7. **`resilience` is a standard job for backend services** — needs lint-typecheck, runs in parallel with unit/integration/security-tests. Skip only for frontends, proto repos, or libraries with no external deps.
 
 ### continue-on-error Policy (Non-Negotiable)
-- **ONLY `security-audit` (pip-audit) gets `continue-on-error: true`** — external vuln databases can be flaky
+- **No CI job gets `continue-on-error: true`** — the gold standard (communication-channel-service) runs all jobs as blocking, including security-audit. If a job fails, the pipeline fails.
+- **Exception: nightly regression `security-audit`** may use `continue-on-error: true` since external vuln databases can be flaky at 2 AM, but PR CI must be strict.
 - **Every other job is blocking** — if it fails, the pipeline fails. No exceptions.
 - **Never add `continue-on-error` to**: unit, integration, security-tests, contract, resilience, lint-typecheck, smoke, e2e
 - **Rationale:** Silent failures are not acceptable. If tests fail, we need to know immediately. A green pipeline must mean everything actually passed.

@@ -116,7 +116,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: lint-typecheck
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

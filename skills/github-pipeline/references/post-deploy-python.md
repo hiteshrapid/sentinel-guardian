@@ -11,11 +11,7 @@ Key differences from Node.js:
 
 ```yaml
 name: Post-Deploy Tests
-run-name: >-
-  Post-Deploy Tests
-  (${{ contains(github.event.workflow_run.name, '(main)') && 'main'
-    || contains(github.event.workflow_run.name, '(qa)') && 'qa'
-    || 'dev' }})
+run-name: Post-Deploy Tests (${{ github.event.workflow_run.head_branch }})
 
 # Workflow 3 — Triggered automatically when Build and Deploy succeeds on dev, qa, or main.
 # Runs smoke tests → E2E journey tests → DAST scan against the deployed environment.
@@ -58,16 +54,12 @@ jobs:
           # github.event.workflow_run.head_branch is unreliable for chained workflow_run workflows
           # (GitHub sets it to the default branch). Resolve the real branch via the upstream run name
           # which contains the branch in parentheses e.g. "Build and Deploy (qa)".
-          UPSTREAM_RUN_NAME: ${{ github.event.workflow_run.name }}
+          # build-deploy.yml uses a push trigger so head_branch is always the real pushed branch.
+          BRANCH:   ${{ github.event.workflow_run.head_branch }}
           PROD_URL: ${{ vars.PROD_URL }}
-          QA_URL: ${{ vars.QA_URL }}
-          DEV_URL: ${{ vars.DEV_URL }}
+          QA_URL:   ${{ vars.QA_URL }}
+          DEV_URL:  ${{ vars.DEV_URL }}
         run: |
-          BRANCH=$(echo "$UPSTREAM_RUN_NAME" | grep -oE '\((dev|qa|main)\)' | tr -d '()')
-          if [ -z "$BRANCH" ]; then
-            echo "Could not resolve branch from upstream run name: $UPSTREAM_RUN_NAME"
-            exit 1
-          fi
           echo "Resolved branch: $BRANCH"
           if [ "$BRANCH" = "main" ]; then
             echo "env_name=prod" >> $GITHUB_OUTPUT
