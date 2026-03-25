@@ -38,9 +38,9 @@ Phase 13: PR              → open against merge target with full report
 4. Analyzer scans → produces plan
 5. **Confirm with the user before proceeding**
 6. Phases execute — parallel where safe:
-   - Phase 3 + 4 + 6 parallel (unit, integration, security)
+   - Phase 3 + 4 + 6 + 7 + 8 parallel (unit, integration, security-tests, security-audit, SAST)
    - Phase 5 waits for 3 + 4 (contract needs passing tests)
-   - Phase 8 post-deploy only
+   - Phase 10 post-deploy only
 7. Each phase: write tests → run → fix failures → commit
 8. Verifier: full suite → 100% coverage → zero debt
 9. Open PR
