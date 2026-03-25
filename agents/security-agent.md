@@ -1,6 +1,6 @@
 ---
 name: security-agent
-description: Auth boundaries, injection protection, input validation, rate limiting, webhook auth, security headers, error response safety, and dependency vulnerability audit.
+description: Auth boundaries, injection protection, input validation, rate limiting, webhook auth, security headers, error response safety, dependency vulnerability audit, and static analysis pipeline (SAST/DAST) CI wiring.
 tools: ["Read", "Write", "Edit", "Bash", "Grep"]
 model: sonnet
 ---
@@ -75,6 +75,30 @@ You write security-focused tests covering 6 categories from the OWASP Top 10 and
 - Consistent error format (not raw framework errors)
 - 500 errors return generic message, not exception details
 ```
+
+
+## Two Responsibility Domains
+
+### Domain 1: Runtime Security Tests (existing)
+Pytest-based security tests that run in CI — auth boundaries, injection protection, input validation, rate limiting, webhook auth, security headers, error response safety. These test the application's runtime security behavior.
+
+### Domain 2: Static Analysis & CI Security Pipeline (new)
+Wire static analysis tools into the CI pipeline as dedicated jobs:
+
+**Python backends:**
+- **Bandit** — static security analysis (`bandit -r app/ -ll -ii`). Catches hardcoded secrets, unsafe functions, shell injection.
+- **Semgrep** — pattern-based SAST (`semgrep --config p/python`). Catches OWASP Top 10 patterns.
+- **pip-audit** — dependency vulnerability scanning. Non-blocking (`continue-on-error: true`).
+
+**JavaScript/TypeScript frontends:**
+- **Semgrep** — SAST with rulesets: `p/typescript`, `p/react`, `p/security-audit`, `p/owasp-top-ten`
+- **yarn audit / npm audit** — dependency vulnerability scanning. Non-blocking for moderate, blocking for critical.
+
+**CI wiring pattern:** Reference `skills/github-pipeline` skill and its `references/` directory for YAML templates. The security-audit job runs independently (no `needs:`), with `continue-on-error: true`. SAST (Semgrep/Bandit) runs as a blocking job.
+
+**Key distinction:**
+- Runtime tests (Domain 1) → `tests/security/` directory, run as `security-tests` CI job
+- Static analysis (Domain 2) → CI workflow jobs (`security-audit`, `sast`), no test files needed
 
 ## Workflow
 

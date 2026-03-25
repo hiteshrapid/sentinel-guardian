@@ -40,6 +40,63 @@ authentication edge cases, authorization boundaries, and injection protection.
 
 ---
 
+
+## Phase 0 — Static Analysis & CI Security Gates
+
+Before writing any runtime security tests, wire static analysis tools into the CI pipeline. These catch vulnerabilities at code-review time without requiring test infrastructure.
+
+### Bandit (Python — Static Security Analysis)
+
+Configuration for CI:
+```bash
+# Recommended flags
+bandit -r app/ src/ -ll -ii    # medium+ severity, medium+ confidence
+
+# Skip rules that produce noise in test/framework code:
+# B101 — assert used (fine in tests)
+# B104 — binding to all interfaces (fine for containerized services)
+# B608 — SQL injection via string formatting (use with caution — review manually)
+bandit -r app/ -ll -ii --skip B101,B104,B608
+```
+
+### Semgrep (Python + JavaScript/TypeScript — Pattern-Based SAST)
+
+Rulesets per stack:
+```bash
+# Python backends
+semgrep --config p/python --config p/security-audit --config p/owasp-top-ten .
+
+# TypeScript/React frontends
+semgrep --config p/typescript --config p/react --config p/security-audit --config p/owasp-top-ten .
+
+# CI job example (see github-pipeline skill references/ for full YAML)
+```
+
+### Dependency Scanning (pip-audit / yarn audit)
+
+**Python:**
+```bash
+# Export requirements, filter private packages, audit
+poetry export -f requirements.txt --without-hashes -o /tmp/reqs.txt
+PACKAGE_NAME=
+grep -v "" /tmp/reqs.txt > /tmp/reqs-audit.txt || true
+pip-audit -r /tmp/reqs-audit.txt
+```
+
+**JavaScript/TypeScript:**
+```bash
+# Audit dependencies only (not devDependencies)
+yarn audit --groups dependencies --level critical
+```
+
+### CI Integration Policy
+
+- **`security-audit` (pip-audit / yarn audit):** `continue-on-error: true` — external vuln databases can be flaky. Moderate findings are informational; critical findings should be investigated.
+- **`sast` (Semgrep / Bandit):** **Blocking** — no `continue-on-error`. SAST findings indicate real code issues.
+- **Reference:** See `skills/github-pipeline` and its `references/` directory for complete CI YAML templates.
+
+---
+
 ## Phase 1 — Audit Current State
 
 ```bash

@@ -25,20 +25,21 @@ For every connected repo under Ruh AI:
 4. monitor results continuously
 5. learn from failures and apply those patterns to future repos
 
-## The 10 Testing Layers (Your DNA)
+## The 11 Testing Layers (Your DNA)
 
 Applied in order, adapted per stack:
 
 1. **Scan & Setup** — detect framework, DB, auth, package manager, CI shape, existing test posture.
-2. **Unit + Component Tests** — business logic in isolation (unit) + React components with real DOM (component). **100% coverage mandatory** — CI enforces coverage thresholds at 100% for statements, branches, functions, and lines. Same standard for frontend and backend. No exceptions.
-3. **Integration Tests** — request → service → database flow, real infrastructure where needed.
-4. **Contract Tests** — OpenAPI / schema / protocol baseline lock.
-5. **Security Tests** — auth boundaries, injection, headers, secrets, dependency audit.
-6. **Resilience Tests** *(conditional)* — timeouts, connection errors, malformed responses, 5xx recovery. Required for backend services with external deps/DB. Skip for frontends, proto repos, libraries.
-7. **Smoke Tests** — fast post-deploy confidence checks.
-8. **E2E Tests** — browser-critical flows with artifacts and stable selectors.
-9. **Regression Tests** — scheduled full-suite runs with failure detection and follow-up.
-10. **Post-Write Review** — mandatory quality gate: dedup scan, mock target verification, external service leak detection, DB safety audit, lint, test isolation check. No test changes ship without passing this gate.
+2. **Unit Tests** — backend business logic in isolation. **100% coverage mandatory** — CI enforces `--cov-fail-under=100`. No exceptions.
+3. **Component Tests** *(frontend only)* — React components with real DOM via Vitest + Testing Library. Renders, interactions, conditional states, all visual states. **100% coverage mandatory** — same standard as unit. Runs in the same CI job as unit tests. See `skills/component-tests/SKILL.md`.
+4. **Integration Tests** — request → service → database flow, real infrastructure where needed.
+5. **Contract Tests** — OpenAPI / schema / protocol baseline lock.
+6. **Security Tests** — two domains: **runtime** (auth boundaries, injection, headers, rate limiting — pytest tests in `tests/security/`) and **static** (SAST via Semgrep/Bandit, dependency audit via pip-audit/yarn-audit — CI pipeline jobs). See `skills/security-tests/SKILL.md` Phase 0.
+7. **Resilience Tests** *(conditional)* — timeouts, connection errors, malformed responses, 5xx recovery. Required for backend services with external deps/DB. Skip for frontends, proto repos, libraries.
+8. **Smoke Tests** — fast post-deploy confidence checks.
+9. **E2E Tests** — browser-critical flows with artifacts and stable selectors.
+10. **Regression Tests** — scheduled full-suite runs with failure detection and follow-up.
+11. **Post-Write Review** — mandatory quality gate: dedup scan, mock target verification, external service leak detection, DB safety audit, lint, test isolation check. No test changes ship without passing this gate.
 
 ## Multi-Repo Operating Model
 

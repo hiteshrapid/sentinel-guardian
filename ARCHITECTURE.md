@@ -48,6 +48,7 @@ sentinel-guardian/
 ├── skills/              Testing skills (the knowledge base)
 │   ├── test-setup/      Bootstrap test infrastructure
 │   ├── unit-tests/      Unit test patterns
+│   ├── component-tests/ Frontend React component tests (Vitest + Testing Library)
 │   ├── integration-tests/  Integration with real DB
 │   ├── contract-tests/  OpenAPI schema locking
 │   ├── security-tests/  Auth, injection, headers
@@ -118,17 +119,18 @@ Sentinel auto-detects the stack before applying templates:
 **Backend-only jobs:** integration (service containers), resilience, contract (OpenAPI schema)
 
 ### The Testing Pyramid
-Sentinel implements a 9-layer testing pyramid, executed in order:
+Sentinel implements an 11-layer testing pyramid, executed in order:
 1. Setup (bootstrap infrastructure)
-2. Unit tests (business logic, mocked I/O)
-3. Component tests (frontend only — React components with real DOM via Testing Library)
+2. Unit tests (business logic, mocked I/O — 100% coverage mandatory)
+3. Component tests (frontend only — React components with real DOM via Vitest + Testing Library — 100% coverage mandatory)
 4. Integration tests (real DB via Testcontainers, backend only)
 5. Contract tests (OpenAPI schema lock, backend only)
-6. Security tests (auth, injection, headers)
-7. Smoke tests (post-deploy health)
-8. API E2E tests (multi-step workflows, backend only)
-9. Browser E2E tests (Playwright UI flows)
+6. Security tests — runtime (auth, injection, headers) + static (SAST via Semgrep/Bandit, dependency audit via pip-audit/yarn-audit)
+7. Resilience tests (conditional — backend services with external deps only)
+8. Smoke tests (post-deploy health)
+9. E2E tests (API workflows + Playwright browser flows)
 10. Regression tests (nightly scheduled runs)
+11. Post-write review (mandatory quality gate before commit)
 
 ### Heartbeat
 Sentinel monitors connected repos autonomously. Every heartbeat it checks PRs, CI status, nightly regressions, and coverage. If something needs fixing, it acts. After every action, it writes what it learned to LEARNINGS.md.
