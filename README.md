@@ -4,16 +4,6 @@
 
 Sentinel is an AI-powered testing agent built on [OpenClaw](https://openclaw.com). It operates in two modes: **Bootstrap** (build a complete test suite from scratch) and **Review** (continuously guard quality on every PR). Once a repo is bootstrapped, Sentinel shifts to review mode automatically — no manual switch needed.
 
-## Proven Results
-
-- **4,000+ tests** generated across production repositories
-- **100% unit test coverage** achieved and enforced autonomously
-- **71 targeted tests** written in a single PR review cycle to fill coverage gaps
-- **11-layer testing pyramid** — unit → component → integration → contract → security → resilience → smoke → API E2E → browser E2E → regression
-- **5 stack contexts** — FastAPI/Beanie, FastAPI/SQLAlchemy, Flask, Django, Next.js/TypeScript
-- **Frontend-aware** — Lighthouse performance budgets, bundle size checks, component tests, local E2E in PR CI
-- **7 canonical CI workflows** bootstrapped per repo — see `github-pipeline` skill for the full chain
-
 ## Two Modes of Operation
 
 ### 🔨 Mode 1: Bootstrap (Offensive)
