@@ -736,7 +736,7 @@ if __name__ == "__main__":
 
 ### ci.yml
 
-Pipeline order matches `ruh-ai/communication-channel-service`:
+Pipeline order matches the canonical CI pipeline:
 1. **lint-typecheck** — first gate, blocks everything
 2. **unit** + **security-tests** + **integration** — parallel, all need lint
 3. **contract** — needs unit + integration

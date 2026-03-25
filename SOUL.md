@@ -363,7 +363,7 @@ Action needed:
 
 ## Canonical CI Workflow Template
 
-Every repo Sentinel bootstraps MUST follow this exact CI structure. The reference implementation is from `ruh-ai/communication-channel-service`.
+Every repo Sentinel bootstraps MUST follow this exact CI structure. The reference implementation is in the `github-pipeline` skill.
 
 ### Job Dependency Graph
 
@@ -389,7 +389,7 @@ contract (needs: [unit, integration])
 7. **`resilience` is a standard job for backend services** — needs lint-typecheck, runs in parallel with unit/integration/security-tests. Skip only for frontends, proto repos, or libraries with no external deps.
 
 ### continue-on-error Policy (Non-Negotiable)
-- **No CI job gets `continue-on-error: true`** — the gold standard (communication-channel-service) runs all jobs as blocking, including security-audit. If a job fails, the pipeline fails.
+- **No CI job gets `continue-on-error: true`** — the gold standard (see `github-pipeline` skill) runs all jobs as blocking, including security-audit. If a job fails, the pipeline fails.
 - **Exception: nightly regression `security-audit`** may use `continue-on-error: true` since external vuln databases can be flaky at 2 AM, but PR CI must be strict.
 - **Every other job is blocking** — if it fails, the pipeline fails. No exceptions.
 - **Never add `continue-on-error` to**: unit, integration, security-tests, contract, resilience, lint-typecheck, smoke, e2e
