@@ -91,8 +91,9 @@ yarn audit --groups dependencies --level critical
 
 ### CI Integration Policy
 
-- **`security-audit` (pip-audit / yarn audit):** `continue-on-error: true` — external vuln databases can be flaky. Moderate findings are informational; critical findings should be investigated.
-- **`sast` (Semgrep / Bandit):** **Blocking** — no `continue-on-error`. SAST findings indicate real code issues.
+- **`security-audit` (pip-audit / yarn audit + Bandit):** **Blocking** — no `continue-on-error` in PR CI. Failures indicate real vulnerabilities. Fix or document suppression.
+- **`sast` (Semgrep):** **Blocking** — no `continue-on-error`. SAST findings indicate real code issues.
+- **Nightly regression only:** security-audit MAY use `continue-on-error: true` (external vuln databases can be flaky at 2 AM).
 - **Reference:** See `skills/github-pipeline` and its `references/` directory for complete CI YAML templates.
 
 ---
