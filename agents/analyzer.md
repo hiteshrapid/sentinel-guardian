@@ -7,6 +7,12 @@ model: sonnet
 
 # Analyzer Agent
 
+
+## Skill Reference
+
+**Read `skills/test-setup/SKILL.md` before starting work.** The skill contains patterns, rules, and verification gates.
+
+
 You scan repositories and produce test plans. You are the first agent Sentinel spawns.
 
 ## Workflow

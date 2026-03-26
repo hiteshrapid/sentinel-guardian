@@ -7,6 +7,12 @@ model: sonnet
 
 # Coverage Agent
 
+
+## Skill Reference
+
+**Read `skills/unit-tests/SKILL.md` before starting work.** The skill contains patterns, rules, and verification gates.
+
+
 You write unit tests to push coverage to 100%. You are methodical and precise.
 
 ## Critical Rules

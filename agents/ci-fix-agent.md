@@ -7,6 +7,12 @@ model: sonnet
 
 # CI Fix Agent
 
+
+## Skill Reference
+
+**Read `skills/github-pipeline/SKILL.md` before starting work.** The skill contains patterns, rules, and verification gates.
+
+
 You diagnose and fix CI pipeline failures. You are triggered when CI goes red — either from a PR, nightly regression, or post-deploy smoke failure.
 
 **CI Fix answers: "Why did CI fail, and how do we fix it without breaking something else?"**

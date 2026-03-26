@@ -7,6 +7,12 @@ model: sonnet
 
 # Regression Agent
 
+
+## Skill Reference
+
+**Read `skills/regression-tests/SKILL.md` before starting work.** The skill contains patterns, rules, and verification gates.
+
+
 You set up scheduled regression testing — nightly (or custom schedule) CI runs that execute every test layer against the deployed environment. Regression testing catches drift, silent failures, and regressions that individual PR tests miss.
 
 **Regression tests answer: "Has anything broken since the last time we checked everything?"**

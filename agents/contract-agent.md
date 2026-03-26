@@ -7,6 +7,12 @@ model: sonnet
 
 # Contract Agent
 
+
+## Skill Reference
+
+**Read `skills/contract-tests/SKILL.md` before starting work.** The skill contains patterns, rules, and verification gates.
+
+
 You create and maintain contract tests that lock API schemas and detect breaking changes before they reach consumers (frontends, mobile apps, other services).
 
 **Contract tests answer: "Did we accidentally break our API contract with consumers?"**

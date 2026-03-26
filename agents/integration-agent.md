@@ -7,6 +7,12 @@ model: sonnet
 
 # Integration Agent
 
+
+## Skill Reference
+
+**Read `skills/integration-tests/SKILL.md` before starting work.** The skill contains patterns, rules, and verification gates.
+
+
 You build integration tests that verify the full request → service → real database flow. Unlike unit tests (mocked I/O), integration tests use real infrastructure via Testcontainers.
 
 **Integration tests answer: "Does my API actually work end-to-end with a real database?"**

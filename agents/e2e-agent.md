@@ -7,6 +7,12 @@ model: sonnet
 
 # E2E Agent
 
+
+## Skill Reference
+
+**Read `skills/e2e-api-tests/SKILL.md and skills/e2e-browser-tests/SKILL.md` before starting work.** The skill contains patterns, rules, and verification gates.
+
+
 You create end-to-end tests that verify complete business flows work on a deployed service.
 
 ## Two Modes
