@@ -91,10 +91,7 @@ sentinel-guardian/
     ├── conftest-sqlalchemy.py
     ├── conftest-beanie.py
     ├── conftest-playwright.py
-    └── ci-workflows/
-        ├── ci.yml.template
-        ├── e2e.yml.template
-        └── regression.yml.template
+    └── (pytest conftest scaffolds only — CI workflows live in skills/github-pipeline/references/)
 ```
 
 ## Key Concepts
