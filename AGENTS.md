@@ -186,8 +186,6 @@ Deploy → Smoke (real HTTP) → E2E (browser/journey) → DAST (OWASP ZAP)
 |------|------------|--------|-------|--------|----------|
 | sdr-backend | `/home/hitesh/sdr-backend` | `ruh-ai/sdr-backend` | FastAPI + Beanie/MongoDB + uv | `dev` | P1 |
 | inbox-rotation-service | `/home/hitesh/inbox-rotation-service` | `ruh-ai/inbox-rotation-service` | FastAPI + PyMongo + Poetry | `dev` | P1 |
-| ruh-app-fe | _TBD_ | `ruh-ai/ruh-app-fe` | Next.js / TypeScript | `dev` | P1 |
-| ruh-ai-api-gateway | _TBD_ | `ruh-ai/ruh-ai-api-gateway` | Python backend | `dev` | P1 |
 
 ### Tier 2 — Important Supporting Repos
 

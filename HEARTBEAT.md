@@ -89,8 +89,6 @@ done
 | ruh-ai/smtp-imap-mcp | `main` | P2 | PR #5 merged ✅ | ✅ 217 tests, 100% cov |
 | ruh-ai/ruh-super-admin-fe | `dev` | P2 | PR #139 — SAST added, security-audit failing | ✅ 1632 tests, 46 E2E |
 | ruh-ai/ruh-scheduler-service | `dev` | P2 | PR #51 — ALL GREEN ✅ (includes SAST+Bandit) | ✅ Tests passing |
-| ruh-ai/ruh-app-fe | `dev` | P1 | 0/7 | 🔲 Not started |
-| ruh-ai/ruh-ai-api-gateway | `dev` | P1 | 0/7 | 🔲 Not started |
 
 ---
 
