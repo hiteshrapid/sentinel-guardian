@@ -107,14 +107,14 @@ PRs need attention:
 
 CI broken:
 ```
-❌ ruh-ai/repo-name CI failed on PR #XX
+❌ ruh-ai/<repo> CI failed on PR #XX
    Root cause: [identified cause]
    Action: fixing on branch, push incoming
 ```
 
 Regression failed:
 ```
-❌ ruh-ai/repo-name nightly regression failed
+❌ ruh-ai/<repo> nightly regression failed
    Job: [failing job]
    Root cause: [classification]
    Action: fix branch opened

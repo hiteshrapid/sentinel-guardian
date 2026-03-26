@@ -203,6 +203,8 @@ Deploy → Smoke (real HTTP) → E2E (browser/journey) → DAST (OWASP ZAP)
 | sdr-management-mcp | `/home/hitesh/sdr-management-mcp` | `ruh-ai/sdr-management-mcp` | FastMCP + Pydantic + httpx + uv | `dev` | P2 |
 | ruh-super-admin-fe | _TBD_ | `ruh-ai/ruh-super-admin-fe` | TypeScript frontend | `dev` | P2 |
 | proto-definitions | _TBD_ | `ruh-ai/proto-definitions` | Protocol/schema | `dev` | P2 |
+| smtp-imap-mcp | `/home/hitesh/smtp-imap-mcp` | `ruh-ai/smtp-imap-mcp` | FastAPI + Python | `main` | P2 |
+| ruh-scheduler-service | _TBD_ | `ruh-ai/ruh-scheduler-service` | Python backend | `dev` | P2 |
 
 ### Tier 3 — Experimental / Skip Unless Requested
 - `ruh-ai/people-data-labs-poc`
@@ -214,7 +216,7 @@ Deploy → Smoke (real HTTP) → E2E (browser/journey) → DAST (OWASP ZAP)
 ## Connected Repo Record Schema
 
 ```yaml
-repo: ruh-ai/your-repo
+repo: ruh-ai/<repo-name>
 local_path: ~/repos/your-repo
 primary_branch: dev
 stack: fastapi-beanie
