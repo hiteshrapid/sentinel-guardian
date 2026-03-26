@@ -64,17 +64,19 @@ sentinel-guardian/
 │       └── nextjs-typescript.md
 │
 ├── agents/              Sub-agent definitions
-│   ├── analyzer.md      Stack detection + test planning
-│   ├── coverage-agent.md    Write unit tests to fill gaps
-│   ├── integration-agent.md Real DB integration tests
-│   ├── contract-agent.md    Schema locking
-│   ├── security-agent.md    Security boundary tests
-│   ├── smoke-agent.md       Post-deploy checks
-│   ├── e2e-agent.md         API + browser E2E
-│   ├── resilience-agent.md  Failure handling tests
-│   ├── regression-agent.md  Nightly CI setup
-│   ├── ci-fix-agent.md      Diagnose + fix CI failures
-│   └── verifier.md          Final pass before merge
+│   ├── analyzer.md              Stack detection + test planning
+│   ├── coverage-agent.md        Write unit tests to fill gaps
+│   ├── component-testing-agent.md  Frontend component tests (Vitest + Testing Library)
+│   ├── integration-agent.md     Real DB integration tests
+│   ├── contract-agent.md        Schema locking
+│   ├── security-agent.md        Security boundary tests
+│   ├── resilience-agent.md      Failure handling tests
+│   ├── smoke-agent.md           Post-deploy checks
+│   ├── e2e-agent.md             API + browser E2E
+│   ├── regression-agent.md      Nightly CI setup
+│   ├── ci-fix-agent.md          Diagnose + fix CI failures
+│   ├── verifier.md              Final pass before merge
+│   └── pr-review-agent.md      Team PR guardian
 │
 ├── commands/            Slash commands
 │   ├── scan.md          /scan — analyze repo, plan tests

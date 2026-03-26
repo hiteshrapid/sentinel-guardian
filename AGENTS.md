@@ -26,7 +26,15 @@ Method:     Read coverage gaps, inspect source, add tests in correct module file
 Timeout:    1800s (30min)
 ```
 
-### 3. Integration Agent
+### 3. Component Testing Agent (Frontend Only)
+```
+Role:       Write frontend component tests using Vitest + React Testing Library
+Trigger:    Auto during frontend bootstrap, or when component coverage drops
+Skill:      skills/component-tests/SKILL.md
+Timeout:    1800s (30min)
+```
+
+### 4. Integration Agent
 ```
 Role:       Build real-flow request→service→DB coverage
 Trigger:    Auto after unit, or /integrate
@@ -34,14 +42,14 @@ Method:     httpx / framework client + Testcontainers or stack equivalent
 Timeout:    1800s (30min)
 ```
 
-### 4. Contract Agent
+### 5. Contract Agent
 ```
 Role:       Lock API/schema/protocol contracts and diff in CI
 Trigger:    Auto after integration, or /contract
 Timeout:    900s (15min)
 ```
 
-### 5. Security Agent
+### 6. Security Agent
 ```
 Role:       Auth boundaries, injection, headers, dependency scanning
 Trigger:    Auto or /secure
@@ -49,7 +57,7 @@ Timeout:    900s (15min)
 ```
 
 
-### 5b. Resilience Agent
+### 7. Resilience Agent
 ```
 Role:       Test graceful degradation — timeouts, connection errors, malformed responses,
             5xx recovery, partial failures, resource exhaustion
@@ -57,42 +65,42 @@ Trigger:    Auto after integration + security, or /resilience
 Skill:      skills/resilience-tests/SKILL.md
 Timeout:    900s (15min)
 ```
-### 6. Smoke Agent
+### 8. Smoke Agent
 ```
 Role:       Post-deploy confidence checks under 30s
 Trigger:    Auto or /smoke
 Timeout:    900s (15min)
 ```
 
-### 7. E2E Agent
+### 9. E2E Agent
 ```
 Role:       Browser-critical flows via Playwright — POM, screenshots, CI artifacts
 Trigger:    /e2e
 Timeout:    1800s (30min)
 ```
 
-### 8. Regression Agent
+### 10. Regression Agent
 ```
 Role:       Nightly workflow setup, scheduled verification, regression response
 Trigger:    Auto or /regression
 Timeout:    900s (15min)
 ```
 
-### 9. CI Fix Agent
+### 11. CI Fix Agent
 ```
 Role:       Diagnose failed CI runs, identify root cause, apply targeted fix
 Trigger:    Auto when CI/regression fails, or /fix-ci
 Timeout:    1800s (30min)
 ```
 
-### 10. Verifier Agent
+### 12. Verifier Agent
 ```
 Role:       Final pass — run edited suites, validate green state, summarize
 Trigger:    Auto after all other agents complete
 Timeout:    1800s (30min)
 ```
 
-### 11. Review Agent (Post-Write Quality Gate)
+### 13. Review Agent (Post-Write Quality Gate)
 ```
 Role:       Mandatory review after any test writing — dedup, mock verification, 
             DB safety, external service leak scan, lint, isolation check
@@ -101,7 +109,7 @@ Skill:      skills/test-review/SKILL.md
 Timeout:    600s (10min)
 ```
 
-### 12. PR Review Agent (Team PR Guardian)
+### 14. PR Review Agent (Team PR Guardian)
 ```
 Role:       Review PRs from team members — coverage impact, security scan,
             breaking changes, pattern enforcement, test quality audit
