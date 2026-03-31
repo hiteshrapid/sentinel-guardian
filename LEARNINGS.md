@@ -162,3 +162,17 @@
 **Root cause:** E2E tests hit staging API and get 405 Method Not Allowed + 404 Not Found. The staging deployment has API changes that broke E2E test contracts (sequence creation endpoint returns 405, campaign lookups return 404). This is a staging environment issue, not a test infrastructure problem.
 **Fix applied:** None yet — needs investigation of which staging deploy changed the API contracts.
 **Learning:** E2E tests against staging are inherently fragile when API contracts change. The E2E tests need updating to match current staging API, or staging needs redeployment with correct endpoints.
+
+## 2026-03-31 — Heartbeat: sdr-backend PR #489 — beanie 2.1.0 breaks mongomock
+
+**What happened:** Team PR upgraded beanie 2.0.1 → 2.1.0. All unit/integration/security/resilience tests fail with `Database.list_collection_names() got unexpected keyword argument 'authorizedCollections'`.
+**Root cause:** beanie 2.1.0 calls `list_collection_names(authorizedCollections=True)` during init. mongomock 4.3.0 doesn't support that parameter.
+**Fix applied:** Flagged as P1 on PR #489 with three fix options (pin beanie, upgrade mongomock, or mock the method).
+**Learning:** When lockfile changes include ODM/ORM upgrades (beanie, SQLAlchemy, Django ORM), always check compatibility with test mocking libraries (mongomock, fakeredis, etc.). These are the #1 silent breakage vector.
+
+## 2026-03-31 — Heartbeat: inbox-rotation-service PR #66 — commit-lint + TLS review
+
+**What happened:** Team PR adds Redis TLS support. Commit-lint fails on `fix(TT-254):` prefix format.
+**Root cause:** Commit message uses conventional-commit style `fix(TT-254):` but canonical pattern requires `TT-254:` prefix directly.
+**Fix applied:** Flagged commit-lint fix (P1) and `ssl_cert_reqs=none` security trade-off (P2).
+**Learning:** `ssl_cert_reqs="none"` is common for GCP Memorystore but disables cert verification. Flag it as a security observation every time — even when it's the pragmatic choice.
