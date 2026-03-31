@@ -70,7 +70,7 @@ npm audit --audit-level=high
 CANONICAL_WORKFLOWS=(ci.yml ci-push.yml commit-lint.yml build-deploy.yml post-deploy.yml jira-transition.yml regression.yml)
 # Also check for: ci-push.yml, commit-lint.yml, build-deploy.yml, jira-transition.yml
 # (these may be called by or embedded in ci.yml depending on the repo)
-for REPO in ruh-ai/sdr-backend ruh-ai/inbox-rotation-service ruh-ai/sdr-management-mcp ruh-ai/ruh-ai-admin-service ruh-ai/ruh-super-admin-fe; do
+for REPO in ruh-ai/sdr-backend ruh-ai/inbox-rotation-service ruh-ai/sdr-management-mcp ruh-ai/ruh-ai-admin-service ruh-ai/ruh-super-admin-fe ruh-ai/smtp-imap-mcp; do
   WORKFLOWS=$(gh api repos/$REPO/contents/.github/workflows --jq '.[].name' 2>/dev/null)
   echo "$REPO: $WORKFLOWS"
 done
@@ -82,13 +82,12 @@ done
 
 ## Connected Repos
 
-| ruh-ai/sdr-backend | `dev` | P1 | PR #459 open — SAST+Bandit added, security-audit failing | ✅ 2821 tests, 100% cov. Needs STAGING_URL + SMOKE_AUTH_KEY secrets |
+| ruh-ai/sdr-backend | `dev` | P1 | PR #472 open (TT-248 regression fix). Nightly failing 3 nights — flaky date test + CVEs | ✅ 2856 tests, 100% cov. SMOKE_AUTH_KEY + DEV_URL configured |
 | ruh-ai/inbox-rotation-service | `dev` | P1 | PR #59 open — SAST+DAST added | ✅ 2220 tests, 26 smoke, 12 E2E |
 | ruh-ai/sdr-management-mcp | `dev` | P2 | PR #45 open — SAST+DAST added, security-audit failing | ✅ 914 tests, 100% cov. Needs DEV_MCP_URL secret |
-| ruh-ai/ruh-ai-admin-service | `dev` | P2 | PR #33 — ALL GREEN ✅ | ✅ 328+ tests, 100% cov |
-| ruh-ai/smtp-imap-mcp | `main` | P2 | PR #5 merged ✅ | ✅ 217 tests, 100% cov |
+| ruh-ai/ruh-ai-admin-service | `dev` | P2 | PR #33 — ALL GREEN ✅ canonical 7-workflow pipeline | ✅ 318+ tests, 100% cov, SAST+DAST |
+| ruh-ai/smtp-imap-mcp | `main` | P2 | PR #8 merged ✅ — full canonical 7-workflow pipeline | ✅ 217 tests, 100% cov, SAST+DAST |
 | ruh-ai/ruh-super-admin-fe | `dev` | P2 | PR #139 — SAST added, security-audit failing | ✅ 1632 tests, 46 E2E |
-| ruh-ai/ruh-scheduler-service | `dev` | P2 | PR #51 — ALL GREEN ✅ (includes SAST+Bandit) | ✅ Tests passing |
 
 ---
 
